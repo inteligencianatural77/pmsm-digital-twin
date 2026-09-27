@@ -2,3 +2,24 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# ========================================
+# MIGRACION / ARTEFACTOS LOCALES
+# ========================================
+
+# Backup local de migración
+.venv_pre_migracion_pathfix/
+
+# Artefacto vacío/histórico
+/0
+
+# Copias históricas
+*.bak
+*.bak_*
+
+# Trayectorias completas de simulación
+# Se conservan localmente; las métricas y figuras sí se versionan.
+results/**/trajectory.csv
+
+# Build metadata generado por pip
+pmsm_hybrid_control.egg-info/

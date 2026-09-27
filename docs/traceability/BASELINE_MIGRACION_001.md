@@ -485,7 +485,7 @@ Se registran como discrepancias históricas que deberán resolverse posteriormen
 
 La implementación Python existente se encuentra en:
 
-`closed_loop_reconstruction/lazo_cerrado_m3_foc_m4.py`
+`historical/closed_loop_reconstruction/lazo_cerrado_m3_foc_m4.py`
 
 La reconstrucción reproduce funcionalmente la cadena:
 
@@ -527,7 +527,7 @@ Generador de gráficas:
 
 También se verificó la generación reproducible de las siete figuras existentes en:
 
-`closed_loop_reconstruction/figuras/`
+`historical/closed_loop_reconstruction/figuras/`
 
 ---
 
@@ -647,7 +647,7 @@ Rama de referencia:
 
 La reconstrucción Python se encuentra actualmente en:
 
-`closed_loop_reconstruction/`
+`historical/closed_loop_reconstruction/`
 
 Este documento establece la primera referencia formal de trazabilidad de la migración.
 

@@ -15,7 +15,7 @@ El objetivo de esta etapa es disponer de una base ejecutable, determinista y tra
 El experimento principal se encuentra en:
 
 ```text
-closed_loop_reconstruction/lazo_cerrado_m3_foc_m4.py
+historical/closed_loop_reconstruction/lazo_cerrado_m3_foc_m4.py
 ```
 
 La cadena reproducible es:
@@ -36,7 +36,7 @@ generar_graficas.py
 ### Estructura
 
 ```text
-closed_loop_reconstruction/
+historical/closed_loop_reconstruction/
 ├── lazo_cerrado_m3_foc_m4.py
 ├── resultado_lazo_cerrado.csv
 ├── generar_graficas.py
@@ -64,25 +64,25 @@ source .venv/bin/activate
 Ejecutar el modelo:
 
 ```bash
-python closed_loop_reconstruction/lazo_cerrado_m3_foc_m4.py
+python historical/closed_loop_reconstruction/lazo_cerrado_m3_foc_m4.py
 ```
 
 El modelo genera:
 
 ```text
-closed_loop_reconstruction/resultado_lazo_cerrado.csv
+historical/closed_loop_reconstruction/resultado_lazo_cerrado.csv
 ```
 
 Después, generar las gráficas:
 
 ```bash
-python closed_loop_reconstruction/generar_graficas.py
+python historical/closed_loop_reconstruction/generar_graficas.py
 ```
 
 Las figuras se guardan en:
 
 ```text
-closed_loop_reconstruction/figuras/
+historical/closed_loop_reconstruction/figuras/
 ```
 
 ---
