@@ -1,0 +1,1034 @@
+\section{Representación en espacio de estados}
+
+\subsection{Propósito de la representación en espacio de estados}
+
+El desarrollo de la formulación matemática realizado en el capítulo anterior permite establecer las ecuaciones diferenciales que describen la dinámica eléctrica, electromagnética y mecánica de la máquina PMSM. Sin embargo, para implementar dichas ecuaciones de forma sistemática en un entorno de simulación es necesario organizar el modelo alrededor de un conjunto explícito de variables de estado, entradas, parámetros y salidas.
+
+La representación en espacio de estados proporciona precisamente esta organización. En lugar de considerar cada ecuación de manera aislada, el modelo se expresa como una relación entre un vector de estados, un vector de entradas y un conjunto de parámetros físicos. Esta representación permite definir de forma precisa qué variables contienen la memoria dinámica de la planta, qué magnitudes actúan sobre ella y qué variables pueden observarse o entregarse a otros bloques del sistema.
+
+En este trabajo, el espacio de estados constituye además el puente entre tres niveles de representación:
+
+\begin{enumerate}
+    \item la formulación física de la máquina PMSM;
+    \item la implementación computacional reproducible en Python;
+    \item la futura integración e implementación del modelo en MATLAB/Simscape y dentro del Digital Twin.
+\end{enumerate}
+
+Por tanto, el espacio de estados no se considera solamente una forma matemática alternativa, sino una definición formal de la dinámica interna de la planta.
+
+\subsection{Del modelo físico al modelo de estados}
+
+El procedimiento seguido parte de las ecuaciones obtenidas a partir de la ley de tensión, los enlaces de flujo, la transformación a coordenadas $dq$, la expresión del par electromagnético y el balance mecánico.
+
+El modelo concentrado utilizado actualmente contiene cuatro variables dinámicas principales:
+
+\begin{equation}
+x =
+\begin{bmatrix}
+i_d &
+i_q &
+\omega_m &
+\theta_m
+\end{bmatrix}^{T}.
+\end{equation}
+
+Estas cuatro variables representan, respectivamente, las componentes de corriente en los ejes $d$ y $q$, la velocidad mecánica del rotor y la posición mecánica del rotor.
+
+La elección de estos estados responde directamente a las ecuaciones diferenciales de la planta. Las corrientes determinan la evolución electromagnética, mientras que la velocidad y la posición determinan la evolución mecánica y la orientación del sistema de coordenadas rotante.
+
+De esta manera, cada componente del vector de estados tiene una interpretación física directa.
+
+\subsection{Estados eléctricos}
+
+Los primeros dos estados corresponden a las corrientes expresadas en el marco rotante:
+
+\begin{equation}
+x_1=i_d.
+\end{equation}
+
+\begin{equation}
+x_2=i_q.
+\end{equation}
+
+La corriente $i_d$ representa la componente asociada al eje directo del rotor, mientras que $i_q$ representa la componente asociada al eje en cuadratura.
+
+En el modelo PMSM utilizado, estas corrientes no son simplemente variables matemáticas obtenidas mediante una transformación. Constituyen las variables dinámicas que determinan, junto con los parámetros magnéticos, los enlaces de flujo y el par electromagnético.
+
+A partir de las ecuaciones obtenidas en el capítulo anterior, sus derivadas son:
+
+\begin{equation}
+\frac{di_d}{dt}
+=
+\frac{
+v_d-R_si_d+\omega_eL_qi_q
+}{
+L_d
+}.
+\end{equation}
+
+\begin{equation}
+\frac{di_q}{dt}
+=
+\frac{
+v_q-R_si_q-\omega_e(L_di_d+\lambda_m)
+}{
+L_q
+}.
+\end{equation}
+
+Estas dos ecuaciones constituyen la parte eléctrica principal del espacio de estados.
+
+\subsection{Estado de velocidad mecánica}
+
+El tercer estado corresponde a la velocidad angular mecánica:
+
+\begin{equation}
+x_3=\omega_m.
+\end{equation}
+
+Su evolución está determinada por el balance de par de la máquina:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+T_e-T_{\mathrm{load}}.
+\end{equation}
+
+Por tanto:
+
+\begin{equation}
+\frac{d\omega_m}{dt}
+=
+\frac{
+T_e-T_{\mathrm{load}}
+}{
+J
+}.
+\end{equation}
+
+La velocidad mecánica conecta directamente la parte electromagnética con la parte mecánica del modelo. El par generado por las corrientes modifica la velocidad, mientras que la velocidad modifica a su vez la frecuencia eléctrica y, por tanto, las ecuaciones eléctricas.
+
+Esta relación constituye uno de los principales acoplamientos físicos de la máquina.
+
+\subsection{Estado de posición mecánica}
+
+El cuarto estado corresponde a la posición angular mecánica:
+
+\begin{equation}
+x_4=\theta_m.
+\end{equation}
+
+Su ecuación diferencial es:
+
+\begin{equation}
+\frac{d\theta_m}{dt}
+=
+\omega_m.
+\end{equation}
+
+La posición del rotor tiene una función especialmente importante porque determina la orientación relativa entre el rotor y las variables eléctricas trifásicas.
+
+A partir de la posición mecánica se obtiene la posición eléctrica mediante:
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+De forma equivalente, la velocidad eléctrica se obtiene mediante:
+
+\begin{equation}
+\omega_e=p\omega_m.
+\end{equation}
+
+En estas expresiones, $p$ representa el número de pares de polos. Para la máquina de referencia se establece:
+
+\begin{equation}
+p=4,
+\end{equation}
+
+a partir de los ocho polos físicos documentados para la máquina de referencia Siemens 1FT7087.
+
+\subsection{Vector de estados completo}
+
+Reuniendo las cuatro variables, el estado de la planta se define como:
+
+\begin{equation}
+x =
+\begin{bmatrix}
+i_d\\
+i_q\\
+\omega_m\\
+\theta_m
+\end{bmatrix}.
+\end{equation}
+
+La derivada temporal del estado es:
+
+\begin{equation}
+\dot{x}
+=
+\begin{bmatrix}
+\dot{i}_d\\
+\dot{i}_q\\
+\dot{\omega}_m\\
+\dot{\theta}_m
+\end{bmatrix}.
+\end{equation}
+
+Sustituyendo las ecuaciones obtenidas previamente:
+
+\begin{equation}
+\dot{x}
+=
+\begin{bmatrix}
+\dfrac{v_d-R_si_d+\omega_eL_qi_q}{L_d}
+\\[6pt]
+\dfrac{v_q-R_si_q-\omega_e(L_di_d+\lambda_m)}{L_q}
+\\[6pt]
+\dfrac{T_e-T_{\mathrm{load}}}{J}
+\\[6pt]
+\omega_m
+\end{bmatrix}.
+\end{equation}
+
+Esta expresión constituye la definición dinámica central del modelo M4.
+
+\subsection{Entradas de la planta}
+
+Para expresar la dinámica de manera compacta se define el vector de entradas como:
+
+\begin{equation}
+u =
+\begin{bmatrix}
+v_d\\
+v_q\\
+T_{\mathrm{load}}
+\end{bmatrix}.
+\end{equation}
+
+Las dos primeras entradas corresponden a las componentes de tensión utilizadas para excitar la dinámica eléctrica del modelo. La tercera entrada representa el par de carga aplicado al eje mecánico.
+
+La definición anterior no implica que estas señales sean generadas internamente por la planta. Por el contrario, representan magnitudes que atraviesan la frontera de la planta y que pueden provenir de otras partes de la arquitectura de control o del escenario experimental.
+
+En una implementación mediante FOC, por ejemplo, $v_d$ y $v_q$ proceden de la acción de control calculada por el controlador. La planta no calcula el FOC; recibe las acciones que le corresponden a través de su interfaz.
+
+\subsection{Parámetros de la planta}
+
+El comportamiento del espacio de estados depende de un conjunto de parámetros físicos y de modelado:
+
+\begin{equation}
+\Theta =
+\left\{
+R_s,
+L_d,
+L_q,
+\lambda_m,
+p,
+J
+\right\}.
+\end{equation}
+
+En el modelo M4 estos parámetros corresponden a:
+
+\begin{itemize}
+    \item $R_s$: resistencia estatórica;
+    \item $L_d$: inductancia equivalente en el eje directo;
+    \item $L_q$: inductancia equivalente en el eje en cuadratura;
+    \item $\lambda_m$: enlace de flujo equivalente producido por los imanes permanentes;
+    \item $p$: número de pares de polos;
+    \item $J$: inercia mecánica utilizada por el modelo.
+\end{itemize}
+
+La presencia explícita de estos parámetros en la formulación permite mantener separadas las propiedades de la máquina de las condiciones de operación y de los parámetros pertenecientes al controlador.
+
+Esta separación es importante para la trazabilidad del Digital Twin.
+
+\subsection{Par electromagnético dentro del espacio de estados}
+
+El par electromagnético actúa como variable intermedia entre la dinámica eléctrica y la dinámica mecánica.
+
+Su forma general para el modelo PMSM utilizado es:
+
+\begin{equation}
+T_e
+=
+\frac{3}{2}p
+\left(
+\psi_di_q-\psi_qi_d
+\right).
+\end{equation}
+
+Con:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m
+\end{equation}
+
+y:
+
+\begin{equation}
+\psi_q=L_qi_q.
+\end{equation}
+
+Por tanto:
+
+\begin{equation}
+T_e
+=
+\frac{3}{2}p
+\left[
+\lambda_mi_q+
+(L_d-L_q)i_di_q
+\right].
+\end{equation}
+
+En el modelo M4 se utiliza:
+
+\begin{equation}
+L_d=L_q.
+\end{equation}
+
+En consecuencia, la contribución de reluctancia desaparece en esta formulación y el par queda reducido a:
+
+\begin{equation}
+T_e
+=
+\frac{3}{2}p\lambda_mi_q.
+\end{equation}
+
+Esta simplificación es una consecuencia del modelo concentrado adoptado. No debe interpretarse como una afirmación general de que cualquier PMSM tenga exactamente la misma relación entre par y corriente.
+
+Cuando posteriormente se introduzcan inductancias dependientes del estado, mapas electromagnéticos o información FEM, la expresión utilizada para calcular el par podrá adquirir una dependencia adicional con las corrientes y con la posición del rotor.
+
+\subsection{Dependencia entre estados eléctricos y mecánicos}
+
+Una característica fundamental del espacio de estados PMSM es que sus ecuaciones están acopladas.
+
+La velocidad mecánica determina la velocidad eléctrica:
+
+\begin{equation}
+\omega_e=p\omega_m.
+\end{equation}
+
+La velocidad eléctrica aparece en las ecuaciones eléctricas:
+
+\begin{equation}
+\frac{di_d}{dt}
+=
+\frac{
+v_d-R_si_d+\omega_eL_qi_q
+}{
+L_d
+},
+\end{equation}
+
+\begin{equation}
+\frac{di_q}{dt}
+=
+\frac{
+v_q-R_si_q-\omega_e(L_di_d+\lambda_m)
+}{
+L_q
+}.
+\end{equation}
+
+Por otra parte, las corrientes determinan el par electromagnético, y este par determina la aceleración mecánica:
+
+\begin{equation}
+\frac{d\omega_m}{dt}
+=
+\frac{
+T_e-T_{\mathrm{load}}
+}{
+J
+}.
+\end{equation}
+
+Existe, por tanto, una cadena de dependencia:
+
+\begin{equation}
+(i_d,i_q)
+\rightarrow
+T_e
+\rightarrow
+\omega_m
+\rightarrow
+\omega_e
+\rightarrow
+(\dot{i}_d,\dot{i}_q).
+\end{equation}
+
+Esta relación explica por qué la planta eléctrica y la planta mecánica no pueden considerarse completamente independientes.
+
+\subsection{Forma general del modelo}
+
+El conjunto de ecuaciones puede expresarse de forma compacta como:
+
+\begin{equation}
+\dot{x}=f(x,u,\Theta).
+\end{equation}
+
+La salida de la planta puede representarse mediante:
+
+\begin{equation}
+y=h(x,u,\Theta).
+\end{equation}
+
+Esta notación es deliberadamente general. Permite conservar la estructura del modelo aunque posteriormente se sustituyan algunas relaciones analíticas por mapas experimentales, expresiones no lineales o modelos derivados de FEM.
+
+En el nivel M4, la función $f$ contiene las ecuaciones concentradas descritas anteriormente. En niveles posteriores, la estructura de estados podrá conservarse mientras cambien las funciones que describen los fenómenos electromagnéticos.
+
+\subsection{Naturaleza no lineal del modelo}
+
+Aunque el modelo M4 utiliza parámetros constantes y presenta una estructura relativamente compacta, la formulación contiene acoplamientos entre variables de estado.
+
+Por ejemplo, la velocidad eléctrica depende de la velocidad mecánica:
+
+\begin{equation}
+\omega_e=p\omega_m,
+\end{equation}
+
+y esta magnitud multiplica las corrientes en las ecuaciones eléctricas.
+
+De forma general:
+
+\begin{equation}
+\dot{x}=f(x,u,\Theta)
+\end{equation}
+
+no tiene por qué reducirse a una relación lineal constante entre $x$ y $u$.
+
+El término:
+
+\begin{equation}
+\omega_eL_qi_q
+\end{equation}
+
+constituye un ejemplo directo de acoplamiento entre estados.
+
+Asimismo, la expresión general del par contiene:
+
+\begin{equation}
+(L_d-L_q)i_di_q,
+\end{equation}
+
+que representa la contribución de reluctancia cuando existe saliencia magnética.
+
+En el caso particular $L_d=L_q$, esta última contribución se anula, pero el acoplamiento electromecánico asociado a la velocidad permanece.
+
+\subsection{Interpretación física de un estado}
+
+Un estado no debe entenderse simplemente como una variable almacenada por el programa de simulación. Desde el punto de vista físico, un estado representa una cantidad necesaria para determinar la evolución futura del sistema junto con las entradas y los parámetros.
+
+En la planta PMSM:
+
+\begin{itemize}
+    \item $i_d$ y $i_q$ contienen la información dinámica asociada a las corrientes estatóricas en el marco rotante;
+    \item $\omega_m$ determina la evolución de la velocidad y participa en la conversión entre frecuencia mecánica y eléctrica;
+    \item $\theta_m$ determina la posición instantánea del rotor y la orientación utilizada por las transformaciones de coordenadas.
+\end{itemize}
+
+Esta interpretación permite distinguir los estados de otras variables calculadas.
+
+Por ejemplo, $T_e$ es una magnitud fundamental del sistema, pero en el modelo actual se calcula a partir de los estados eléctricos y de los parámetros electromagnéticos. Por ello se considera una variable derivada o intermedia, y no un quinto estado independiente.
+
+\subsection{Condiciones iniciales}
+
+Para ejecutar una simulación es necesario definir las condiciones iniciales del estado:
+
+\begin{equation}
+x(0)=
+\begin{bmatrix}
+i_d(0)\\
+i_q(0)\\
+\omega_m(0)\\
+\theta_m(0)
+\end{bmatrix}.
+\end{equation}
+
+La implementación base actual inicia los estados internos en cero:
+
+\begin{equation}
+i_d(0)=0,
+\end{equation}
+
+\begin{equation}
+i_q(0)=0,
+\end{equation}
+
+\begin{equation}
+\omega_m(0)=0,
+\end{equation}
+
+\begin{equation}
+\theta_m(0)=0.
+\end{equation}
+
+Estas condiciones corresponden a una condición inicial de reposo del modelo computacional.
+
+No deben interpretarse como una afirmación acerca del estado inicial de una máquina física durante una prueba determinada. Una prueba experimental o una simulación diferente puede requerir condiciones iniciales distintas.
+
+\subsection{Salidas de la planta}
+
+Las variables entregadas por la planta dependen de la interfaz utilizada. Para la implementación Python actual se define una estructura de salida que contiene:
+
+\begin{equation}
+y =
+\begin{bmatrix}
+i_a &
+i_b &
+i_c &
+i_d &
+i_q &
+\omega_m &
+\theta_m &
+T_e
+\end{bmatrix}^{T}.
+\end{equation}
+
+Las corrientes $i_a$, $i_b$ e $i_c$ permiten interactuar con elementos definidos en coordenadas trifásicas.
+
+Las corrientes $i_d$ e $i_q$ permiten observar directamente el estado electromagnético en el marco rotante.
+
+La velocidad y posición permiten observar la evolución mecánica, mientras que el par electromagnético proporciona una variable fundamental para evaluar el intercambio de energía entre la parte eléctrica y la mecánica.
+
+\subsection{Correspondencia con la implementación Python}
+
+La representación matemática tiene una correspondencia directa con la arquitectura de software desarrollada para la migración Python.
+
+La clase de parámetros:
+
+\begin{equation}
+\mathrm{PMSMParameters}
+\end{equation}
+
+contiene los parámetros utilizados por la planta.
+
+La clase:
+
+\begin{equation}
+\mathrm{PMSMBase}
+\end{equation}
+
+implementa la dinámica del modelo M4.
+
+La estructura de entrada:
+
+\begin{equation}
+\mathrm{PlantInput}
+\end{equation}
+
+transporta las señales que atraviesan la frontera de la planta.
+
+La estructura:
+
+\begin{equation}
+\mathrm{PlantOutput}
+\end{equation}
+
+transporta las variables generadas por la planta.
+
+La correspondencia conceptual puede resumirse como:
+
+\begin{equation}
+\{
+x,u,\Theta
+\}
+\longrightarrow
+\mathrm{PMSMBase}
+\longrightarrow
+y.
+\end{equation}
+
+Esta correspondencia permite conservar una relación trazable entre la formulación matemática y el código ejecutable.
+
+\subsection{Transformación entre coordenadas e implementación}
+
+El espacio de estados utiliza principalmente las variables $dq$ porque las ecuaciones dinámicas de la máquina se expresan de forma compacta en este marco.
+
+Sin embargo, la interfaz de la planta puede utilizar variables trifásicas $abc$.
+
+La implementación realiza por tanto la cadena:
+
+\begin{equation}
+abc
+\rightarrow
+\alpha\beta
+\rightarrow
+dq.
+\end{equation}
+
+Para recuperar las variables trifásicas:
+
+\begin{equation}
+dq
+\rightarrow
+\alpha\beta
+\rightarrow
+abc.
+\end{equation}
+
+Las transformaciones no constituyen una planta diferente. Son cambios de representación de las mismas magnitudes físicas.
+
+Esta distinción es importante para evitar confundir el espacio de estados con el sistema de coordenadas utilizado para expresarlo.
+
+\subsection{Integración temporal}
+
+El espacio de estados define las derivadas, pero una implementación digital necesita además un procedimiento para obtener los estados en instantes discretos.
+
+En la implementación base actual se utiliza integración explícita de Euler.
+
+Para un paso temporal $\Delta t$:
+
+\begin{equation}
+x_{k+1}
+=
+x_k+\Delta t\,f(x_k,u_k,\Theta).
+\end{equation}
+
+Aplicado individualmente:
+
+\begin{equation}
+i_{d,k+1}
+=
+i_{d,k}
++
+\Delta t
+\frac{
+v_{d,k}-R_si_{d,k}
++\omega_{e,k}L_qi_{q,k}
+}{
+L_d
+}.
+\end{equation}
+
+De forma equivalente:
+
+\begin{equation}
+i_{q,k+1}
+=
+i_{q,k}
++
+\Delta t
+\frac{
+v_{q,k}-R_si_{q,k}
+-\omega_{e,k}
+(L_di_{d,k}+\lambda_m)
+}{
+L_q
+}.
+\end{equation}
+
+La velocidad se actualiza mediante:
+
+\begin{equation}
+\omega_{m,k+1}
+=
+\omega_{m,k}
++
+\Delta t
+\frac{
+T_{e,k}-T_{\mathrm{load},k}
+}{
+J
+}.
+\end{equation}
+
+Y la posición mediante:
+
+\begin{equation}
+\theta_{m,k+1}
+=
+\theta_{m,k}
++
+\Delta t\,\omega_{m,k}.
+\end{equation}
+
+Esta formulación hace explícita la relación entre las ecuaciones continuas y la ejecución digital del modelo.
+
+\subsection{Escalas temporales}
+
+La planta PMSM contiene fenómenos con escalas temporales diferentes.
+
+Las corrientes eléctricas pueden presentar variaciones considerablemente más rápidas que la dinámica mecánica de la velocidad. Por esta razón, el paso temporal utilizado para la simulación debe ser compatible con la dinámica eléctrica que se pretende resolver.
+
+En la reconstrucción actual se utiliza un paso base de:
+
+\begin{equation}
+\Delta t=50\,\mu\mathrm{s}.
+\end{equation}
+
+Este valor también permite mantener una correspondencia con la escala temporal utilizada históricamente en la reconstrucción del lazo de control de corriente.
+
+La selección del paso de integración pertenece a la implementación numérica y no debe confundirse con un parámetro físico intrínseco de la máquina.
+
+\subsection{Relación entre espacio de estados y parámetros trazables}
+
+Una ventaja de esta representación consiste en que cada término de la dinámica puede asociarse con un parámetro concreto.
+
+Por ejemplo:
+
+\begin{equation}
+R_s
+\rightarrow
+\text{caída resistiva},
+\end{equation}
+
+\begin{equation}
+L_d,L_q
+\rightarrow
+\text{dinámica de corriente},
+\end{equation}
+
+\begin{equation}
+\lambda_m
+\rightarrow
+\text{flujo permanente y FEM},
+\end{equation}
+
+\begin{equation}
+p
+\rightarrow
+\text{conversión mecánica-eléctrica},
+\end{equation}
+
+\begin{equation}
+J
+\rightarrow
+\text{dinámica mecánica}.
+\end{equation}
+
+Esta relación permite conectar la formulación matemática con la matriz de trazabilidad de parámetros establecida para el proyecto.
+
+Los parámetros documentales, derivados y las decisiones de modelado no se mezclan arbitrariamente. Cada uno participa en la formulación con un significado explícito.
+
+\subsection{Nivel de fidelidad correspondiente al modelo M4}
+
+La representación en espacio de estados descrita en este capítulo corresponde al nivel concentrado M4 utilizado actualmente como base reproducible.
+
+En este nivel:
+
+\begin{itemize}
+    \item las inductancias se representan mediante valores concentrados;
+    \item el enlace de flujo de los imanes se representa mediante $\lambda_m$;
+    \item el modelo utiliza una representación analítica del par;
+    \item no se incorporan mapas FEM validados;
+    \item no se incorporan armónicos espaciales detallados;
+    \item no se incorporan pérdidas electromagnéticas dependientes de frecuencia mediante mapas;
+    \item no se incorpora todavía una dinámica térmica completa;
+    \item los parámetros de fricción viscosa y par de fricción permanecen pendientes de verificación.
+\end{itemize}
+
+Por tanto, el espacio de estados M4 debe considerarse una representación física concentrada y trazable, no la representación final de máxima fidelidad de la máquina.
+
+\subsection{Qué cambia cuando aumente la fidelidad}
+
+La estructura de estados no necesariamente debe desaparecer cuando el modelo evolucione.
+
+Una evolución natural consiste en mantener las variables principales y sustituir algunas relaciones internas por funciones de mayor fidelidad.
+
+Por ejemplo, el enlace de flujo podría pasar de:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m
+\end{equation}
+
+a una función:
+
+\begin{equation}
+\psi_d
+=
+\psi_d(i_d,i_q,\theta_m),
+\end{equation}
+
+obtenida mediante mapas electromagnéticos.
+
+De manera equivalente:
+
+\begin{equation}
+\psi_q
+=
+\psi_q(i_d,i_q,\theta_m).
+\end{equation}
+
+El par podría entonces obtenerse mediante una relación dependiente del estado:
+
+\begin{equation}
+T_e
+=
+T_e(i_d,i_q,\theta_m).
+\end{equation}
+
+Esto permitiría incorporar saliencia, saturación magnética, dependencia angular y otros fenómenos cuando exista evidencia suficiente para parametrizarlos.
+
+La transición prevista es:
+
+\begin{equation}
+\text{modelo concentrado}
+\rightarrow
+\text{mapas}
+\rightarrow
+\text{modelo no lineal}
+\rightarrow
+\text{FEM/ROM}.
+\end{equation}
+
+La estructura de estados constituye así una base sobre la cual pueden evolucionar las funciones físicas internas.
+
+\subsection{Relación con mapas electromagnéticos}
+
+Los mapas electromagnéticos no deben considerarse un sustituto arbitrario del espacio de estados. Su función es proporcionar relaciones físicas más detalladas para aquellas magnitudes que en el modelo concentrado se representan mediante constantes o expresiones simplificadas.
+
+Por ejemplo, un mapa de flujo podría representar:
+
+\begin{equation}
+\psi_d=f(i_d,i_q,\theta_e),
+\end{equation}
+
+\begin{equation}
+\psi_q=g(i_d,i_q,\theta_e).
+\end{equation}
+
+El espacio de estados continuaría describiendo la evolución temporal de las corrientes, velocidad y posición, mientras que las funciones electromagnéticas proporcionarían relaciones internas de mayor fidelidad.
+
+Los mapas recuperados existentes en el proyecto se mantienen separados de la implementación M4 activa hasta que su semántica, unidades, ejes, condiciones y procedencia hayan sido verificadas.
+
+\subsection{Relación con FEM y ROM}
+
+Un modelo obtenido mediante FEM puede aportar información sobre la distribución espacial del campo magnético, saturación, dependencia angular, armónicos y otras características que no aparecen explícitamente en el modelo concentrado.
+
+Sin embargo, la incorporación de resultados FEM al Digital Twin requiere una etapa de reducción y organización de la información.
+
+Una ROM puede transformar información de alta fidelidad en relaciones utilizables por una simulación dinámica.
+
+La relación conceptual es:
+
+\begin{equation}
+\mathrm{FEM}
+\rightarrow
+\mathrm{datos}
+\rightarrow
+\mathrm{ROM/mapas}
+\rightarrow
+f(x,u,\Theta)
+\rightarrow
+\text{planta ejecutable}.
+\end{equation}
+
+Por ello, el espacio de estados constituye también una frontera natural para integrar progresivamente información electromagnética de mayor fidelidad.
+
+\subsection{Condición particular de la posición del rotor}
+
+La implementación actual presenta una particularidad que debe mantenerse explícita para evitar una interpretación incorrecta del código.
+
+La estructura de entrada de la planta contiene una señal denominada $\theta_m$, mientras que la planta también mantiene internamente un estado de posición mecánica.
+
+Conceptualmente, ambas cantidades representan la misma magnitud física, pero su coexistencia en la implementación actual responde a la reconstrucción incremental del modelo.
+
+Por esta razón, esta interfaz no debe reinterpretarse silenciosamente como una arquitectura definitiva.
+
+La consolidación futura deberá decidir de forma explícita si la posición del rotor es:
+
+\begin{enumerate}
+    \item un estado interno integrado por la planta;
+    \item una señal externa proporcionada por una fuente de posición;
+    \item o una interfaz cuidadosamente definida que permita ambas posibilidades sin duplicar la dinámica.
+\end{enumerate}
+
+Esta observación pertenece a la evolución de la implementación y no modifica la formulación física presentada anteriormente.
+
+\subsection{Separación entre planta y controlador}
+
+El espacio de estados pertenece a la planta PMSM.
+
+El controlador FOC utiliza información de la planta para calcular las acciones necesarias para seguir una referencia, pero sus ecuaciones no forman parte del vector de estados de la planta.
+
+De manera conceptual:
+
+\begin{equation}
+\text{referencia}
+\rightarrow
+\text{controlador}
+\rightarrow
+\text{acción}
+\rightarrow
+\text{planta}
+\rightarrow
+\text{realimentación}.
+\end{equation}
+
+La planta se encarga de responder físicamente a las entradas.
+
+El FOC, MPC u otra estrategia de control se encarga de calcular acciones sobre la planta.
+
+Esta separación permite que una misma planta pueda ser utilizada posteriormente para comparar diferentes estrategias de control sin modificar arbitrariamente su definición física.
+
+\subsection{Espacio de estados y contratos de arquitectura}
+
+La separación entre planta y control se extiende mediante los contratos de interfaz del sistema.
+
+Un bloque no debe depender directamente de la implementación interna de otro bloque. Las señales atraviesan interfaces definidas que actúan como contratos.
+
+En términos conceptuales:
+
+\begin{equation}
+\text{Controlador}
+\rightarrow
+[\text{contrato}]
+\rightarrow
+\text{Planta}.
+\end{equation}
+
+Y en sentido de realimentación:
+
+\begin{equation}
+\text{Planta}
+\rightarrow
+[\text{contrato}]
+\rightarrow
+\text{Controlador}.
+\end{equation}
+
+El espacio de estados define la dinámica interna de la planta, mientras que el contrato define qué información puede entrar o salir de ella.
+
+Esta distinción permite mantener independientes la física de la máquina y la arquitectura de control.
+
+\subsection{Relación con MATLAB y Simscape}
+
+La formulación de estados también proporciona una referencia para comparar implementaciones realizadas en diferentes plataformas.
+
+MATLAB/Simscape puede representar la máquina mediante componentes físicos y resolver internamente sus ecuaciones. Python puede implementar explícitamente el modelo concentrado utilizado en la reconstrucción.
+
+Aunque las dos implementaciones puedan utilizar mecanismos numéricos diferentes, ambas pueden compararse mediante variables físicas comunes:
+
+\begin{itemize}
+    \item corrientes;
+    \item velocidad;
+    \item posición;
+    \item par;
+    \item tensiones;
+    \item respuesta temporal;
+    \item condiciones de operación.
+\end{itemize}
+
+Esta comparación permite distinguir entre una diferencia debida al algoritmo numérico y una diferencia debida a la formulación física.
+
+La trazabilidad no exige que ambos entornos tengan exactamente la misma implementación interna. Exige que las hipótesis, parámetros, entradas, salidas y condiciones de comparación estén suficientemente definidas.
+
+\subsection{Relación con el Digital Twin}
+
+El espacio de estados constituye una de las capas fundamentales del Digital Twin PMSM.
+
+La relación conceptual puede expresarse como:
+
+\begin{equation}
+\begin{aligned}
+\text{máquina física}
+&\rightarrow \text{parámetros}
+\rightarrow \text{modelo matemático}
+\\
+&\rightarrow \text{espacio de estados}
+\rightarrow \text{modelo ejecutable}.
+\end{aligned}
+\end{equation}
+
+A partir de esta base, el Digital Twin puede incorporar progresivamente datos experimentales, mapas electromagnéticos, modelos de pérdidas, información térmica y modelos derivados de FEM.
+
+El espacio de estados proporciona entonces la estructura dinámica sobre la cual se integran esos elementos.
+
+No se pretende que el modelo M4 represente desde el inicio todos los fenómenos de la máquina real. Su función es proporcionar una base explícita, reproducible y trazable que pueda evolucionar mediante evidencia adicional.
+
+\subsection{Resumen de la formulación en espacio de estados}
+
+La planta M4 puede resumirse mediante:
+
+\begin{equation}
+x=
+\begin{bmatrix}
+i_d\\
+i_q\\
+\omega_m\\
+\theta_m
+\end{bmatrix},
+\qquad
+u=
+\begin{bmatrix}
+v_d\\
+v_q\\
+T_{\mathrm{load}}
+\end{bmatrix},
+\qquad
+\Theta=
+\left\{
+R_s,L_d,L_q,\lambda_m,p,J
+\right\}.
+\end{equation}
+
+Su dinámica queda definida por:
+
+\begin{equation}
+\dot{x}=f(x,u,\Theta).
+\end{equation}
+
+Las principales relaciones físicas son:
+
+\begin{equation}
+\omega_e=p\omega_m,
+\end{equation}
+
+\begin{equation}
+T_e
+=
+\frac{3}{2}p
+\left[
+\lambda_mi_q+
+(L_d-L_q)i_di_q
+\right],
+\end{equation}
+
+\begin{equation}
+\frac{d\omega_m}{dt}
+=
+\frac{T_e-T_{\mathrm{load}}}{J},
+\end{equation}
+
+\begin{equation}
+\frac{d\theta_m}{dt}
+=
+\omega_m.
+\end{equation}
+
+Esta representación concentra en una estructura única la información necesaria para ejecutar la dinámica principal de la planta.
+
+\subsection{Alcance del modelo actual}
+
+El espacio de estados desarrollado en este capítulo debe interpretarse como la representación matemática correspondiente al nivel M4 actualmente establecido.
+
+Su valor principal es proporcionar una base:
+
+\begin{itemize}
+    \item físicamente interpretable;
+    \item parametrizada;
+    \item trazable;
+    \item reproducible;
+    \item independiente del controlador;
+    \item compatible con la reconstrucción Python;
+    \item comparable con implementaciones de referencia;
+    \item preparada para evolucionar hacia modelos de mayor fidelidad.
+\end{itemize}
+
+Los elementos que todavía requieren información adicional no deben introducirse como si fueran parámetros confirmados. Entre ellos se encuentran la fricción detallada, mapas electromagnéticos verificados, pérdidas dependientes de frecuencia, comportamiento térmico completo y relaciones obtenidas de FEM/ROM.
+
+\subsection{Cierre del capítulo}
+
+La representación en espacio de estados transforma la formulación matemática de la PMSM en una estructura directamente utilizable por una implementación computacional.
+
+Los estados $i_d$, $i_q$, $\omega_m$ y $\theta_m$ representan las variables dinámicas principales del modelo M4. Las entradas representan las acciones eléctricas y mecánicas que atraviesan la frontera de la planta, mientras que los parámetros contienen las propiedades utilizadas para determinar su evolución.
+
+Esta estructura permite mantener una separación clara entre la dinámica física de la máquina y las estrategias de control que posteriormente actuarán sobre ella.
+
+La representación también establece una base para aumentar progresivamente la fidelidad del modelo. Las relaciones analíticas actuales pueden ser sustituidas o complementadas por mapas electromagnéticos, modelos no lineales, resultados FEM y ROM sin perder necesariamente la estructura general de la planta.
+
+De esta manera, el espacio de estados constituye un punto de unión entre la formulación matemática, la implementación Python, la referencia MATLAB/Simscape y la evolución futura hacia el Digital Twin PMSM.
+
+El siguiente capítulo documentará la implementación de referencia MATLAB/Simscape, estableciendo su función dentro de la trazabilidad del modelo y diferenciándola de la reconstrucción reproducible desarrollada posteriormente en Python.

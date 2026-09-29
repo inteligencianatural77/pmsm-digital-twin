@@ -1,0 +1,164 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,mexico]{babel}
+\usepackage[letterpaper,margin=2.5cm,top=3cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{siunitx}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=blue,urlcolor=blue]{hyperref}
+
+% Ajuste del ancho reservado para numeración de subsecciones en el TOC.
+\makeatletter
+\renewcommand{\l@subsection}{\@dottedtocline{2}{1.5em}{3.5em}}
+\makeatother
+
+
+\captionsetup{justification=centering}
+\graphicspath{{figuras/}{figures/}}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=flexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+
+% Resultados generados automáticamente por Python.
+% Este archivo no debe editarse manualmente.
+\IfFileExists{datos/resultados_pmsm.tex}{\input{datos/resultados_pmsm}}{}
+
+
+% Metadatos
+
+\newcommand{\DocumentTitle}{Modelado, simulación y control FOC de un PMSM mediante una arquitectura híbrida}
+
+\newcommand{\DocumentType}{Engineering Technical Report}
+
+\newcommand{\DocumentID}{PMSM-HC-001}
+
+\newcommand{\DocumentVersion}{0.2}
+
+\newcommand{\DocumentStatus}{Technical Development and Architecture Definition}
+
+\newcommand{\DocumentAuthor}{Ulises Ricardo Jasso Castillo}
+
+\newcommand{\DocumentDate}{Septiembre 2026}
+
+\begin{document}
+
+\begin{titlepage}
+
+\thispagestyle{empty}
+
+\centering
+
+\vspace*{1.0cm}
+
+\includegraphics[width=2.5cm]{portada/ipn-eps-converted-to.pdf}
+
+\vspace{0.5cm}
+
+{\Large\textbf{INSTITUTO POLITÉCNICO NACIONAL}\par}
+
+\vspace{0.5cm}
+
+\includegraphics[width=3.5cm]{portada/Esime.png}
+
+\vspace{0.5cm}
+
+{\large\textbf{ESCUELA SUPERIOR DE INGENIERÍA MECÁNICA Y ELÉCTRICA}\par}
+
+\vspace{1.5cm}
+
+{\Large\textbf{\DocumentTitle}\par}
+
+\vspace{1.5cm}
+
+\begin{tabular}{>{\bfseries}p{0.30\textwidth}p{0.55\textwidth}}
+
+Tipo de documento: & \DocumentType \\
+
+Identificador: & \DocumentID \\
+
+Versión: & \DocumentVersion \\
+
+Estado: & \DocumentStatus \\
+
+Autor: & \DocumentAuthor \\
+
+Fecha: & \DocumentDate \\
+
+\end{tabular}
+
+\vfill
+
+{\large Ciudad de México\par}
+
+{\large \DocumentDate\par}
+
+\end{titlepage}
+
+\input{capitulos/01_introduccion}
+
+\input{capitulos/02_maquina_referencia}
+
+\input{capitulos/03_caracterizacion_parametrizacion}
+
+\input{capitulos/04_planta_pmsm}
+
+\input{capitulos/05_formulacion_matematica}
+
+\input{capitulos/06_espacio_estados}
+
+\input{capitulos/07_implementacion_referencia_matlab_simscape}
+
+\input{capitulos/08_reconstruccion_python}
+
+\input{capitulos/09_validacion_planta}
+
+\input{capitulos/10_mapas_electromagneticos}
+
+\input{capitulos/11_modelo_no_lineal_fem_rom}
+
+\input{capitulos/12_digital_twin_pmsm}
+
+\input{capitulos/13_transformaciones_coordenadas}
+
+\input{capitulos/14_control_foc}
+
+\input{capitulos/15_mpc}
+
+\input{capitulos/16_anfis_neurodifuso}
+
+\input{capitulos/17_tinyml}
+
+\input{capitulos/18_arquitectura_hibrida_contratos}
+
+\input{capitulos/19_resultados}
+
+\input{capitulos/20_discusion}
+
+\input{capitulos/21_conclusiones}
+
+\appendix
+
+\input{capitulos/apendice_trazabilidad}
+
+
+\end{document}

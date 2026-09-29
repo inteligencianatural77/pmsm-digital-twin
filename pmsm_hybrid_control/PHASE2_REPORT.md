@@ -5,7 +5,7 @@ STATUS:            COMPLETA (avance por instruccion explicita del usuario)
 
 IMPLEMENTED:
 - plant/flux_maps.py: FluxMap con base analitica PROPOSED derivada de
-  parametros M4 CONFIRMED (psi_d = Ld*id + lambda_m; psi_q = Lq*iq),
+  parametros M4 CONFIRMED (psi_d = Ld*id + lambda_m; psi_q = Lq*iq), 
   coherente con parametrizacion constantMutualInductance CONFIRMADA.
   Sin dependencia de theta (sin saliencia, Ld=Lq CONFIRMED).
 - plant/torque_map.py: TorqueMap con la ECUACION DE REFERENCIA

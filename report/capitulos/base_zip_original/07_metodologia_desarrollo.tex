@@ -1,0 +1,24 @@
+\section{Metodología de desarrollo y validación}
+
+La metodología adoptada establece a Python como semilla de desarrollo y validación independiente. Simulink/Simscape se utilizará posteriormente como plataforma de implementación e integración de soluciones previamente comprobadas.
+
+\begin{equation}
+\text{Modelo/algoritmo}\rightarrow\text{Python}\rightarrow\text{validación}\rightarrow\text{refinamiento}\rightarrow\text{Simulink/Simscape}.
+\end{equation}
+
+\subsection{Papel temporal de \texttt{skeleton.slx}}
+
+El archivo histórico \texttt{skeleton.slx} se considera una fuente temporal de evidencia arquitectónica. Su autopsia permite reconstruir la nomenclatura M1--M8, identificar contratos, observar conexiones y registrar discrepancias. Esta evidencia se conserva en la documentación de trazabilidad y no constituye, por sí misma, la especificación final del sistema.
+
+\subsection{Implementación computacional}
+
+La migración Python contiene el modelo de planta, transformaciones, reconstrucción funcional de M3 y FOC/M6, pruebas de consistencia y experimentos de lazo cerrado. Los módulos ANFIS, gobernador y seguridad permanecen como infraestructura de desarrollo y no deben presentarse como implementaciones completas.
+
+\subsection{Reproducibilidad}
+
+El flujo documental debe ser:
+\begin{equation}
+\text{Python}\rightarrow\text{CSV/NPZ/figuras}\rightarrow\text{datos/*.tex}\rightarrow\text{LaTeX}.
+\end{equation}
+
+Las cifras de resultados y métricas no deberán escribirse manualmente en el texto final.

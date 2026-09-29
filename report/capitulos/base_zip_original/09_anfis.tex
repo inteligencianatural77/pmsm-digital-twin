@@ -1,0 +1,18 @@
+\section{ANFIS: capa inteligente de predicción y adaptación}
+
+ANFIS constituye la línea principal de desarrollo de inteligencia aplicada al PMSM. Su finalidad no es reemplazar al FOC, sino aprender o aproximar relaciones no lineales de la planta y proporcionar información predictiva o adaptativa dentro de límites definidos por contrato.
+
+\subsection{Hipótesis inicial de variables}
+Una formulación candidata considera:
+\begin{equation}
+X=[i_d,i_q,\theta],
+\end{equation}
+con salidas:
+\begin{equation}
+Y=[\psi_d,\psi_q,T_e].
+\end{equation}
+
+Estas variables son una hipótesis de trabajo y deberán confirmarse mediante datos representativos del dominio operativo.
+
+\subsection{Posición arquitectónica}
+ANFIS se conecta con la arquitectura mediante una interfaz explícita. El FOC conserva la acción directa de control, mientras que ANFIS podrá aportar predicción, estimación o adaptación limitada por contratos y restricciones de seguridad.

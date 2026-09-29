@@ -1,0 +1,566 @@
+\section{Planta PMSM}
+
+\subsection{Función de la planta dentro del Digital Twin}
+
+La planta PMSM constituye el núcleo físico-computacional sobre el cual se desarrolla progresivamente el Digital Twin de la máquina de referencia Siemens 1FT7087. Su función es proporcionar una representación matemática ejecutable de las principales dinámicas eléctricas, electromagnéticas y mecánicas de la máquina, manteniendo trazabilidad respecto de los datos físicos que la parametrizan.
+
+La planta no debe entenderse como un bloque aislado cuya única finalidad sea producir una respuesta para un controlador. Dentro de la arquitectura propuesta, constituye una representación computacional de la máquina física que puede evolucionar en nivel de fidelidad y utilizarse como plataforma común para diferentes estrategias de control, análisis y validación.
+
+El nivel implementado actualmente corresponde a la realización M4, denominada \texttt{M4\_BASE}. Esta realización constituye la primera implementación computacional reproducible de la planta a partir de un conjunto de parámetros físicamente trazables. Sobre esta base se podrá incorporar progresivamente información electromagnética adicional, incluyendo mapas de flujo y torque, dependencias no lineales, información procedente de modelos FEM y, cuando resulte necesario, modelos reducidos.
+
+La linealidad de determinadas relaciones utilizadas en M4 constituye una característica del nivel de representación adoptado y no la definición final de la planta. La arquitectura se ha diseñado desde el inicio para permitir el enriquecimiento progresivo de la representación física.
+
+La separación entre planta y control constituye una decisión fundamental de la arquitectura. La planta representa el comportamiento de la máquina, mientras que los algoritmos de control determinan las acciones que se aplican sobre ella. Por esta razón, el FOC, el MPC y las futuras capas ANFIS o TinyML no forman parte de la dinámica interna de \texttt{PMSMBase}.
+
+Esta separación permite que una misma representación física pueda utilizarse posteriormente como plataforma común para comparar diferentes estrategias de control sin modificar la definición fundamental de la máquina.
+
+El flujo conceptual de la planta dentro de la arquitectura es:
+
+\begin{equation}
+\begin{aligned}
+\text{Máquina física}
+&\rightarrow \text{Parametrización trazable}
+\rightarrow \text{Planta PMSM}
+\\
+&\rightarrow \text{Accionamiento y control}
+\rightarrow \text{Validación}.
+\end{aligned}
+\end{equation}
+
+De esta manera, la planta constituye un elemento estable de la arquitectura, mientras que su representación interna puede aumentar progresivamente en fidelidad.
+
+\subsection{Arquitectura de implementación}
+
+La implementación actual en Python está organizada en una cadena explícita:
+
+\begin{equation}
+\texttt{parameters.py}
+\rightarrow
+\texttt{PMSMParameters}
+\rightarrow
+\texttt{PMSMBase}
+\rightarrow
+\texttt{PlantInput/PlantOutput}.
+\end{equation}
+
+Cada elemento tiene una responsabilidad específica.
+
+El archivo \texttt{parameters.py} contiene la parametrización utilizada por el modelo M4. No contiene parámetros propios del FOC ni valores históricos procedentes de CloudE que hayan sido descartados de la fuente M4.
+
+La clase \texttt{PMSMParameters} agrupa los valores utilizados directamente por la planta y proporciona una validación básica de coherencia.
+
+La clase \texttt{PMSMBase}, ubicada en \texttt{pmsm\_base.py}, implementa los estados, las ecuaciones dinámicas, las transformaciones necesarias y el paso de integración de la planta.
+
+Finalmente, las estructuras \texttt{PlantInput} y \texttt{PlantOutput} definen la interfaz actual de intercambio de información entre la planta y el resto del sistema.
+
+Esta separación permite distinguir claramente:
+
+\begin{enumerate}
+\item la información física utilizada para parametrizar la máquina;
+\item el modelo dinámico que representa su comportamiento;
+\item las señales mediante las cuales la planta se conecta con otros bloques.
+\end{enumerate}
+
+La organización también facilita la evolución posterior de la representación. La incorporación de mapas o de relaciones electromagnéticas de mayor fidelidad puede realizarse dentro de la frontera de la planta, manteniendo, cuando sea posible, contratos compatibles con las capas externas.
+
+\subsection{Contenedor y trazabilidad de parámetros}
+
+La implementación utiliza la estructura \texttt{TraceableValue} para asociar a una magnitud numérica su estado de trazabilidad, fuente, unidad y, cuando corresponde, una nota adicional.
+
+Los estados definidos en el código son:
+
+\begin{itemize}
+\item \texttt{CONFIRMED}: valor considerado confirmado dentro de la fuente de datos M4;
+\item \texttt{PROPOSED}: decisión interna de diseño o modelado;
+\item \texttt{PENDING\_VERIFICATION}: información cuya procedencia o interpretación todavía requiere verificación.
+\end{itemize}
+
+La clase \texttt{PMSMParameters} reúne los parámetros empleados directamente por la planta:
+
+\begin{equation}
+\Theta =
+\left\{
+R_s,L_d,L_q,\lambda_m,p,J
+\right\}.
+\end{equation}
+
+Además, conserva otros valores definidos por la estructura de datos M4, entre ellos $M_s$, $L_0$ y $N$, que deben distinguirse de los parámetros que participan directamente en las ecuaciones dinámicas activas.
+
+Una distinción importante es que $N$ y $p$ no representan la misma magnitud. En la implementación:
+
+\begin{equation}
+N=6
+\end{equation}
+
+corresponde a un parámetro asociado a la configuración del bloque, mientras que:
+
+\begin{equation}
+p=4
+\end{equation}
+
+representa el número de pares de polos utilizado por la planta. Esta distinción evita reutilizar de forma incorrecta un parámetro de configuración como si fuera una propiedad electromecánica.
+
+Los parámetros de fricción y amortiguamiento:
+
+\begin{equation}
+B
+\end{equation}
+
+y:
+
+\begin{equation}
+T_{\mathrm{fric}}
+\end{equation}
+
+se conservan como referencias pendientes de verificación, pero no participan actualmente en la dinámica M4.
+
+Asimismo, el valor histórico:
+
+\begin{equation}
+\lambda_m=0.11,\mathrm{Wb}
+\end{equation}
+
+procedente de implementaciones anteriores no sustituye al valor utilizado actualmente por M4:
+
+\begin{equation}
+\lambda_m=0.107245,\mathrm{Wb}.
+\end{equation}
+
+Esta separación permite que el código actual permanezca ligado a la fuente M4 mientras los valores históricos se conservan únicamente como evidencia de las etapas anteriores de reconstrucción.
+
+\subsection{Estados de la planta}
+
+La planta M4 utiliza cuatro estados internos:
+
+\begin{equation}
+x=
+\begin{bmatrix}
+i_d &
+i_q &
+\omega_m &
+\theta_m
+\end{bmatrix}^{T}.
+\end{equation}
+
+Los estados eléctricos son las corrientes $i_d$ e $i_q$, expresadas en el sistema de coordenadas rotante. La corriente $i_d$ representa la componente asociada al eje $d$, mientras que $i_q$ representa la componente asociada al eje $q$, que en la parametrización actual participa directamente en la producción del par electromagnético.
+
+Los otros dos estados representan la parte mecánica de la máquina:
+
+\begin{itemize}
+\item $\omega_m$: velocidad angular mecánica;
+\item $\theta_m$: posición angular mecánica.
+\end{itemize}
+
+Los estados iniciales configurados por la implementación son:
+
+\begin{equation}
+i_d(0)=0,
+\qquad
+i_q(0)=0,
+\end{equation}
+
+\begin{equation}
+\omega_m(0)=0,
+\qquad
+\theta_m(0)=0.
+\end{equation}
+
+A partir de la posición mecánica se obtiene la posición eléctrica mediante:
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+De forma equivalente, la velocidad eléctrica se obtiene mediante:
+
+\begin{equation}
+\omega_e=p\omega_m.
+\end{equation}
+
+Estas relaciones conectan directamente la dinámica mecánica con la representación eléctrica utilizada por el modelo.
+
+\subsection{Entradas de la planta}
+
+La interfaz \texttt{PlantInput} define actualmente cinco magnitudes:
+
+\begin{equation}
+u_{\mathrm{plant}}=
+\begin{bmatrix}
+v_a &
+v_b &
+v_c &
+T_{\mathrm{load}} &
+\theta_m
+\end{bmatrix}^{T}.
+\end{equation}
+
+Las tensiones $v_a$, $v_b$ y $v_c$ representan las tensiones aplicadas a las tres fases de la máquina.
+
+El término $T_{\mathrm{load}}$ representa el par resistente externo utilizado por la simulación. Debido a que los términos $B$ y $T_{\mathrm{fric}}$ todavía no están verificados, el modelo actual utiliza el par de carga como representación del esfuerzo mecánico externo aplicado a la máquina.
+
+La interfaz también recibe $\theta_m$. Esta magnitud se utiliza actualmente para determinar el ángulo eléctrico requerido por las transformaciones de coordenadas.
+
+Esta estructura corresponde a la interfaz actual de la planta reconstruida. No reproduce directamente los nombres de los buses históricos de CloudE. La arquitectura actual define interfaces propias y trazables que pueden mantenerse independientemente de la organización de los modelos históricos.
+
+\subsection{Salidas de la planta}
+
+La estructura \texttt{PlantOutput} proporciona las principales variables necesarias para observar el comportamiento de la máquina:
+
+\begin{equation}
+y_{\mathrm{plant}}=
+\begin{bmatrix}
+i_a &
+i_b &
+i_c &
+i_d &
+i_q &
+\omega_m &
+\theta_m &
+T_e
+\end{bmatrix}^{T}.
+\end{equation}
+
+Las corrientes $i_a$, $i_b$ e $i_c$ permiten observar el comportamiento trifásico de la máquina.
+
+Las corrientes $i_d$ e $i_q$ permiten observar el mismo comportamiento en el marco rotante utilizado por el modelo y posteriormente por los algoritmos de control.
+
+Las variables $\omega_m$ y $\theta_m$ representan la respuesta mecánica, mientras que $T_e$ representa el par electromagnético calculado por la planta.
+
+Esta combinación permite utilizar las mismas salidas para análisis de la máquina, validación del modelo y realimentación de los controladores.
+
+\subsection{Representación de las variables eléctricas}
+
+Aunque la frontera de la planta utiliza variables trifásicas, el núcleo dinámico se formula en coordenadas $dq$.
+
+El flujo de representación utilizado es:
+
+\begin{equation}
+abc
+\rightarrow
+\alpha\beta
+\rightarrow
+dq.
+\end{equation}
+
+Las tensiones trifásicas recibidas mediante \texttt{PlantInput} son transformadas primero al plano estacionario $\alpha\beta$ y posteriormente al sistema rotante $dq$.
+
+Una vez calculadas las corrientes internas $i_d$ e $i_q$, la transformación inversa permite obtener las corrientes trifásicas:
+
+\begin{equation}
+dq
+\rightarrow
+\alpha\beta
+\rightarrow
+abc.
+\end{equation}
+
+La transformación de coordenadas no representa un cambio físico en la máquina. Se trata de un cambio de representación matemática que permite expresar las variables eléctricas en un sistema de referencia conveniente para describir la interacción entre corriente, flujo, velocidad y par.
+
+En la implementación actual, las transformaciones Clarke y Park se utilizan como parte del paso de ejecución de la planta. Por tanto, la planta puede recibir variables de fase y entregar nuevamente variables de fase, mientras que sus ecuaciones internas trabajan en el marco $dq$.
+
+Esta característica será especialmente importante en los capítulos posteriores dedicados al FOC y a la formulación matemática.
+
+\subsection{Dinámica eléctrica}
+
+El núcleo eléctrico de la planta está definido en coordenadas $dq$.
+
+La evolución de la corriente en el eje $d$ se implementa como:
+
+\begin{equation}
+\frac{di_d}{dt} =
+\frac{v_d-R_si_d+\omega_eL_qi_q}{L_d}.
+\end{equation}
+
+La corriente en el eje $q$ evoluciona según:
+
+\begin{equation}
+\frac{di_q}{dt} =
+\frac{v_q-R_si_q-\omega_e(L_di_d+\lambda_m)}{L_q}.
+\end{equation}
+
+Estas expresiones muestran que las corrientes no dependen únicamente de las tensiones aplicadas. También intervienen la resistencia de los devanados, las inductancias, el flujo permanente y la velocidad eléctrica.
+
+Por tanto, la planta contiene una interacción entre los dominios eléctrico y mecánico: cuando aumenta $\omega_m$, aumenta también $\omega_e$, modificando los términos de acoplamiento presentes en las ecuaciones eléctricas.
+
+La relación:
+
+\begin{equation}
+\omega_e=p\omega_m
+\end{equation}
+
+establece precisamente este vínculo entre ambos dominios.
+
+La obtención física de estas ecuaciones se desarrolla posteriormente en el capítulo dedicado a la formulación matemática, donde se partirá de las relaciones de tensión, flujo y fuerza electromotriz para justificar cada término.
+
+\subsection{Modelo electromagnético}
+
+El modelo M4 utiliza como expresión de referencia para el par electromagnético:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p
+\left[
+\lambda_mi_q+
+(L_d-L_q)i_di_q
+\right].
+\end{equation}
+
+La estructura completa de la ecuación se conserva en la implementación aunque actualmente:
+
+\begin{equation}
+L_d=L_q.
+\end{equation}
+
+Por esta razón:
+
+\begin{equation}
+L_d-L_q=0,
+\end{equation}
+
+y el término asociado al par de reluctancia se anula dentro de la parametrización M4 actual.
+
+El par queda entonces reducido a la contribución asociada al flujo permanente:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p\lambda_mi_q.
+\end{equation}
+
+Esta simplificación es consecuencia de la parametrización utilizada en este nivel del modelo y no debe interpretarse como una propiedad universal de todas las máquinas PMSM.
+
+Una PMSM real puede presentar saliencia, saturación, dependencia de los enlaces de flujo con la corriente, dependencia angular, armónicos y otros fenómenos electromagnéticos. Estos efectos podrán incorporarse progresivamente cuando exista información suficiente para aumentar la fidelidad de la planta.
+
+Además, el código identifica explícitamente la expresión del par como una ecuación de referencia o candidata. Por ello, no se afirma en esta etapa que constituya la ley interna exacta del modelo Simscape de referencia.
+
+\subsection{Dinámica mecánica}
+
+La parte mecánica de la planta se describe mediante el balance entre el par electromagnético generado y el par de carga aplicado:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+T_e-T_{\mathrm{load}}.
+\end{equation}
+
+La velocidad mecánica determina a su vez la evolución de la posición:
+
+\begin{equation}
+\frac{d\theta_m}{dt}
+=
+\omega_m.
+\end{equation}
+
+La dinámica mecánica proporciona así el vínculo entre la generación de par y el movimiento del rotor.
+
+En el modelo actual no se introducen de forma independiente los términos de amortiguamiento viscoso ni fricción seca porque los parámetros $B$ y $T_{\mathrm{fric}}$ permanecen pendientes de verificación.
+
+Esto no significa que la máquina física carezca de pérdidas mecánicas. Significa que esas pérdidas todavía no han sido identificadas con suficiente trazabilidad para formar parte de la parametrización M4.
+
+\subsection{Integración numérica}
+
+Una vez calculadas las derivadas de los estados, la implementación actual utiliza integración explícita de Euler.
+
+Para un estado genérico $x$:
+
+\begin{equation}
+x_{k+1}
+=
+x_k+
+\dot{x}_k\Delta t.
+\end{equation}
+
+El intervalo $\Delta t$ se proporciona a la función \texttt{step()} y debe ser positivo.
+
+El procedimiento de un paso puede resumirse como:
+
+\begin{enumerate}
+\item recibir las variables de entrada;
+\item calcular el ángulo eléctrico;
+\item transformar las variables trifásicas al marco $dq$;
+\item calcular las derivadas de las corrientes y variables mecánicas;
+\item integrar los estados;
+\item transformar las corrientes $dq$ nuevamente a $abc$;
+\item construir la estructura \texttt{PlantOutput}.
+\end{enumerate}
+
+La elección de Euler explícito está clasificada en el código como una decisión \texttt{PROPOSED}. Su objetivo en esta fase es proporcionar una implementación transparente y reproducible.
+
+El método numérico no forma parte de la física de la máquina. Por tanto, podrá modificarse posteriormente cuando los experimentos requieran diferentes compromisos entre precisión, estabilidad y costo computacional.
+
+\subsection{Nivel de representación M4}
+
+M4 no intenta representar simultáneamente todos los fenómenos presentes en una máquina PMSM real. Su función dentro de la arquitectura es establecer una primera realización computacional físicamente trazada, reproducible y suficientemente estructurada para permitir su posterior enriquecimiento.
+
+Entre los fenómenos que todavía no forman parte de la dinámica activa se encuentran:
+
+\begin{itemize}
+\item saturación magnética;
+\item dependencia de $L_d$ y $L_q$ con las corrientes;
+\item dependencia angular de los enlaces de flujo;
+\item armónicos espaciales;
+\item pérdidas electromagnéticas detalladas;
+\item dinámica térmica completa;
+\item identificación de fricción y amortiguamiento;
+\item resolución mediante FEM;
+\item mapas electromagnéticos físicamente validados.
+\end{itemize}
+
+Estos elementos delimitan el nivel de representación actual y, al mismo tiempo, establecen los ejes sobre los cuales puede aumentar la fidelidad de la planta.
+
+\subsection{Mapas y evolución del modelo}
+
+El repositorio contiene estructuras destinadas a soportar una evolución de la representación electromagnética.
+
+El módulo \texttt{flux\_maps.py} proporciona actualmente una representación analítica conservadora de los enlaces de flujo basada en los parámetros constantes de M4. Esta representación se mantiene como referencia propuesta y no como un mapa electromagnético experimental o FEM validado.
+
+De forma equivalente, \texttt{torque\_map.py} conserva una representación analítica del par basada en la ecuación de referencia.
+
+El repositorio también conserva datos recuperados de etapas anteriores. Estos datos no se activan automáticamente porque su semántica, correspondencia de ejes, unidades y procedencia deben verificarse antes de utilizarlos como fuente de un modelo de mayor fidelidad.
+
+El archivo \texttt{pmsm\_nonlinear.py} constituye la estructura prevista para una futura extensión del modelo. Actualmente no implementa una dinámica no lineal activa y, por tanto, no se presenta como el modelo operativo de la máquina.
+
+La evolución de la representación no se interpreta como una secuencia rígida, sino como un proceso de enriquecimiento de la información física:
+
+\begin{equation}
+\text{M4}
+\rightarrow
+\text{información electromagnética verificada}
+\rightarrow
+\text{modelo de mayor fidelidad}.
+\end{equation}
+
+La información FEM podrá constituir una fuente independiente de alta fidelidad para generar o contrastar mapas y modelos reducidos.
+
+Cada transición deberá conservar la trazabilidad respecto de la representación anterior.
+
+\subsection{Frontera entre planta y control}
+
+La planta PMSM se mantiene conceptualmente separada de los algoritmos de control.
+
+El intercambio puede representarse como:
+
+\begin{equation}
+\mathrm{Controlador}
+\rightarrow
+\mathrm{Contrato}
+\rightarrow
+\mathrm{Planta}
+\rightarrow
+\mathrm{Contrato}
+\rightarrow
+\mathrm{Controlador}.
+\end{equation}
+
+Los contratos y buses actúan como mecanismos de intercambio de información entre bloques. Esto permite evitar que cada bloque dependa directamente de la implementación interna de otro.
+
+La planta, por tanto, no debe conocer si la acción de control procede de un FOC, de un MPC o de una futura capa supervisora. Su responsabilidad consiste en recibir las variables definidas por su interfaz, evolucionar sus estados y devolver las variables correspondientes.
+
+Esta separación será especialmente importante cuando se incorporen diferentes estrategias de control sobre una misma representación física.
+
+El FOC continúa siendo el controlador de referencia establecido en la arquitectura actual. Las estrategias MPC, ANFIS y TinyML se consideran desarrollos posteriores que deberán operar sobre la misma frontera física y respetar los contratos establecidos.
+
+\subsection{Particularidad de la posición mecánica}
+
+La implementación actual presenta una particularidad que debe conservarse explícitamente en la trazabilidad.
+
+La estructura \texttt{PlantInput} contiene la posición mecánica $\theta_m$, pero $\theta_m$ también forma parte de los estados internos de \texttt{PMSMBase}.
+
+Durante la ejecución de \texttt{step()}, la posición recibida se utiliza para calcular:
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+Posteriormente, el valor recibido se asigna al estado interno antes de realizar la integración.
+
+El estado interno vuelve entonces a evolucionar mediante:
+
+\begin{equation}
+\theta_{m,k+1}
+=
+\theta_{m,k}
++
+\omega_{m,k}\Delta t.
+\end{equation}
+
+Esta característica representa la implementación actual de la planta reconstruida. No se modifica en esta etapa porque hacerlo implicaría cambiar la semántica de la interfaz y podría afectar los experimentos existentes.
+
+Sin embargo, queda registrada como un punto de consolidación de la arquitectura futura. Una versión posterior deberá establecer de forma inequívoca si la posición del rotor constituye una entrada externa, un estado interno o una variable medida o estimada procedente de otro bloque.
+
+\subsection{Independencia respecto del accionamiento}
+
+La planta M4 tampoco incorpora como parámetro propio la tensión del enlace de corriente continua.
+
+El valor $V_{DC}$ pertenece al dominio eléctrico del accionamiento y determina las tensiones que pueden generarse para alimentar la máquina. Por ello, no forma parte de \texttt{PMSMParameters}.
+
+Esta separación permite estudiar la misma máquina bajo diferentes condiciones del accionamiento sin modificar su identidad física.
+
+Por ejemplo, una simulación puede utilizar:
+
+\begin{equation}
+V_{DC}=540,\mathrm{V},
+\end{equation}
+
+como condición experimental del sistema de potencia, mientras que los parámetros propios de la máquina permanecen sin cambios.
+
+Esta distinción resulta necesaria posteriormente para comparar regiones de operación, límites de tensión, debilitamiento de campo y curvas de par--velocidad.
+
+\subsection{Nivel de fidelidad M4}
+
+La implementación descrita corresponde a la primera realización computacional reproducible de la planta PMSM.
+
+Su valor no reside en representar desde el inicio todos los fenómenos electromagnéticos de la máquina real, sino en establecer una base física, matemática y computacional trazable sobre la cual pueda aumentarse progresivamente la fidelidad.
+
+El nivel actual puede resumirse como:
+
+\begin{equation}
+\boxed{
+\text{PMSM concentrada}
++
+\text{parámetros trazables}
++
+\text{dinámica }dq
++
+\text{dinámica mecánica}
+}
+\end{equation}
+
+A partir de esta base podrán incorporarse progresivamente las dependencias que actualmente no están representadas.
+
+El objetivo final no es simplemente disponer de un modelo matemático más complejo, sino construir una representación digital de la máquina que pueda utilizarse para experimentar, comparar y validar diferentes estrategias de control y diferentes niveles de representación física.
+
+\subsection{Resumen de la planta implementada}
+
+La planta M4 actual puede resumirse mediante la siguiente cadena:
+
+\begin{equation}
+\begin{aligned}
+\text{Parámetros M4}
+&\rightarrow \text{Estados}
+\rightarrow \text{Transformaciones}
+\\
+&\rightarrow \text{Dinámica eléctrica}
+\rightarrow \text{Torque}
+\rightarrow \text{Dinámica mecánica}.
+\end{aligned}
+\end{equation}
+
+En términos de software:
+
+\begin{equation}
+\texttt{parameters.py}
+\rightarrow
+\texttt{PMSMBase}
+\rightarrow
+\texttt{PlantInput}
+\rightarrow
+\texttt{step()}
+\rightarrow
+\texttt{PlantOutput}.
+\end{equation}
+
+Esta implementación constituye la primera representación computacional reproducible de la planta física de referencia.
+
+A partir de ella, los capítulos siguientes desarrollarán primero el fundamento físico de las ecuaciones utilizadas, posteriormente su formulación en espacio de estados y finalmente su relación con las implementaciones de referencia MATLAB/Simscape, la reconstrucción Python y los procesos de validación.
+
+La planta M4 queda así definida como una base de trabajo físicamente trazada, reproducible y evolutiva, sobre la cual puede aumentar progresivamente el nivel de fidelidad del Digital Twin.

@@ -1,0 +1,777 @@
+\section{Validación de la planta}
+
+\subsection{Propósito de la validación}
+
+La validación de la planta PMSM tiene como objetivo determinar qué propiedades de la representación M4 pueden verificarse con la evidencia disponible y cuáles requieren niveles posteriores de modelado o evidencia experimental.
+
+La validación se plantea de manera progresiva. No se considera que una única simulación de lazo cerrado demuestre por sí misma la validez completa de la planta. En su lugar, se separan las verificaciones matemáticas, numéricas, funcionales y de correspondencia con la documentación de referencia.
+
+El criterio general es:
+
+\begin{equation}
+\begin{aligned}
+\text{modelo}
+&\rightarrow \text{implementación}
+\rightarrow \text{prueba reproducible}
+\\
+&\rightarrow \text{métrica}
+\rightarrow \text{evidencia}
+\rightarrow \text{alcance de validez}.
+\end{aligned}
+\end{equation}
+
+Esta separación permite evitar que un resultado correcto bajo una condición particular sea interpretado como una validación general de todos los fenómenos físicos de la máquina.
+
+\subsection{Niveles de validación}
+
+La validación actual puede organizarse en varios niveles complementarios:
+
+\begin{itemize}
+    \item consistencia de parámetros;
+    \item consistencia matemática;
+    \item consistencia de implementación;
+    \item comportamiento numérico;
+    \item comportamiento de lazo cerrado;
+    \item correspondencia con datos documentales;
+    \item validación de fenómenos de mayor fidelidad.
+\end{itemize}
+
+Los primeros niveles pueden ejecutarse sobre la implementación M4 actual. Los últimos requieren información que todavía no se encuentra incorporada de manera activa en la planta.
+
+\subsection{Consistencia de los parámetros}
+
+La primera verificación consiste en comprobar que los parámetros utilizados por la planta coincidan con la fuente de verdad establecida para M4.
+
+La implementación actual concentra los parámetros en \texttt{parameters.py}, donde cada magnitud posee información de trazabilidad.
+
+Los valores utilizados por la planta M4 incluyen:
+
+\begin{itemize}
+    \item $R_s=0.05\,\Omega$;
+    \item $L_d=1.2\times10^{-3}\,\mathrm{H}$;
+    \item $L_q=1.2\times10^{-3}\,\mathrm{H}$;
+    \item $\lambda_m=0.107245\,\mathrm{Wb}$;
+    \item $p=4$ pares de polos;
+    \item $J=0.00416\,\mathrm{kg\,m^2}$.
+\end{itemize}
+
+La presencia de estos valores en la configuración de la planta permite verificar que el experimento utiliza una parametrización explícita y no valores ocultos dentro del algoritmo de control.
+
+\subsection{Consistencia entre documentación y modelo}
+
+La validación documental compara los parámetros empleados por M4 con la caracterización de la máquina de referencia.
+
+Esta comparación no significa que todos los valores deban coincidir numéricamente con una única fuente. Algunos parámetros corresponden directamente a datos del fabricante, mientras que otros son derivados o constituyen decisiones de modelado.
+
+Por ejemplo, la resistencia de referencia publicada por Siemens es de $0.046\,\Omega$ a $20\,^{\circ}\mathrm{C}$, mientras que M4 utiliza $0.05\,\Omega$. La diferencia debe conservarse explícitamente en la trazabilidad y no eliminarse mediante una sustitución silenciosa.
+
+De manera similar, la documentación proporciona una inductancia $L_D=1.2\,\mathrm{mH}$, mientras que M4 utiliza $L_d=L_q=1.2\,\mathrm{mH}$. La igualdad entre ambos ejes constituye una hipótesis del modelo concentrado actual y no una afirmación de que la máquina física carezca de anisotropía en cualquier condición de operación.
+
+\subsection{Verificación del flujo magnético}
+
+El flujo permanente utilizado por M4 puede obtenerse a partir del par específico documentado para la máquina.
+
+La relación empleada es:
+
+\begin{equation}
+k_T=
+\frac{3}{2}\sqrt{2}\,p\,\lambda_m.
+\end{equation}
+
+Por tanto:
+
+\begin{equation}
+\lambda_m=
+\frac{k_T}
+{\left(\frac{3}{2}\right)\sqrt{2}\,p}.
+\end{equation}
+
+Con $k_T=0.91\,\mathrm{N\,m/A}$ y $p=4$ se obtiene aproximadamente:
+
+\begin{equation}
+\lambda_m\approx0.107245\,\mathrm{Wb}.
+\end{equation}
+
+Esta magnitud es la utilizada actualmente por la planta M4.
+
+La documentación proporciona además un valor de $k_E$, que permite construir una referencia independiente. La comparación entre ambas estimaciones no se utiliza para declarar automáticamente un error del modelo, debido a que las condiciones de temperatura, tolerancias y convenciones de magnitud pueden ser diferentes.
+
+\subsection{Verificación de la estructura matemática}
+
+La planta M4 implementa las ecuaciones eléctricas en coordenadas $dq$:
+
+\begin{equation}
+v_d=
+R_si_d+
+L_d\frac{di_d}{dt}
+-
+\omega_eL_qi_q.
+\end{equation}
+
+\begin{equation}
+v_q=
+R_si_q+
+L_q\frac{di_q}{dt}
++
+\omega_e
+\left(
+L_di_d+\lambda_m
+\right).
+\end{equation}
+
+Las ecuaciones diferenciales implementadas son:
+
+\begin{equation}
+\frac{di_d}{dt}
+=
+\frac{
+v_d-R_si_d+\omega_eL_qi_q
+}{
+L_d
+}.
+\end{equation}
+
+\begin{equation}
+\frac{di_q}{dt}
+=
+\frac{
+v_q-R_si_q-
+\omega_e(L_di_d+\lambda_m)
+}{
+L_q
+}.
+\end{equation}
+
+La relación entre velocidad eléctrica y mecánica se establece mediante:
+
+\begin{equation}
+\omega_e=p\omega_m.
+\end{equation}
+
+La dinámica mecánica utiliza:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+T_e-T_{\mathrm{load}}.
+\end{equation}
+
+Y la posición mecánica:
+
+\begin{equation}
+\frac{d\theta_m}{dt}
+=
+\omega_m.
+\end{equation}
+
+La validación matemática consiste en verificar que las expresiones implementadas en \texttt{PMSMBase} sean consistentes con la formulación establecida en los capítulos anteriores.
+
+\subsection{Verificación del par electromagnético}
+
+La expresión de referencia utilizada por M4 es:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p
+\left[
+\lambda_mi_q+
+(L_d-L_q)i_di_q
+\right].
+\end{equation}
+
+Dado que el modelo actual utiliza:
+
+\begin{equation}
+L_d=L_q,
+\end{equation}
+
+la expresión se reduce a:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p\lambda_mi_q.
+\end{equation}
+
+Esta simplificación permite comprobar directamente la relación entre corriente $i_q$ y par electromagnético dentro del modelo concentrado.
+
+No debe interpretarse esta expresión como una ley universal de la máquina física bajo cualquier condición. Cuando se incorporen saturación, anisotropía efectiva, dependencia angular, armónicos o mapas electromagnéticos, la relación puede requerir una representación diferente.
+
+\subsection{Verificación de las condiciones iniciales}
+
+La implementación M4 inicia sus estados principales en cero:
+
+\begin{equation}
+x(0)=
+\begin{bmatrix}
+0&
+0&
+0&
+0
+\end{bmatrix}^{T}.
+\end{equation}
+
+Por tanto:
+
+\begin{equation}
+i_d(0)=i_q(0)=\omega_m(0)=\theta_m(0)=0.
+\end{equation}
+
+Esta condición constituye una condición inicial del experimento y no una propiedad permanente de la máquina.
+
+Mantenerla explícita permite reproducir los resultados y evita introducir estados iniciales implícitos.
+
+\subsection{Integración numérica}
+
+La implementación actual utiliza integración explícita de Euler.
+
+Para un estado genérico:
+
+\begin{equation}
+x_{k+1}
+=
+x_k+
+\Delta t\,f(x_k,u_k,\Theta).
+\end{equation}
+
+El paso utilizado en la reconstrucción B0 es:
+
+\begin{equation}
+\Delta t=50\,\mu\mathrm{s}.
+\end{equation}
+
+Por tanto, la frecuencia de actualización correspondiente es:
+
+\begin{equation}
+f_s=
+\frac{1}{\Delta t}
+=
+20\,\mathrm{kHz}.
+\end{equation}
+
+Esta condición permite reproducir exactamente la discretización utilizada por el experimento de referencia B0.
+
+\subsection{Alcance de la validación numérica}
+
+La validación numérica comprueba que la implementación puede ejecutar una trayectoria completa sin producir estados o señales fuera de las condiciones establecidas por el experimento.
+
+Entre las variables de interés se encuentran:
+
+\begin{itemize}
+    \item velocidad mecánica;
+    \item corriente $i_d$;
+    \item corriente $i_q$;
+    \item par electromagnético;
+    \item tensiones $v_d$ y $v_q$;
+    \item magnitud del vector de tensión;
+    \item señales PWM;
+    \item posición mecánica.
+\end{itemize}
+
+La ausencia de errores numéricos durante una simulación no constituye por sí misma una validación física. Constituye una evidencia de consistencia computacional bajo las condiciones ensayadas.
+
+\subsection{Experimento B0}
+
+El experimento B0 constituye la línea base reproducible de la reconstrucción cerrada M3--M6--M4.
+
+La arquitectura es:
+
+\begin{equation}
+\omega^\ast
+\rightarrow
+\mathrm{FOC}
+\rightarrow
+(v_d^\ast,v_q^\ast)
+\rightarrow
+\mathrm{M3}
+\rightarrow
+\mathrm{M4}
+\rightarrow
+(i_{abc},\omega_m,\theta_m,T_e).
+\end{equation}
+
+La realimentación conecta las variables observadas de la planta con el controlador mediante la interfaz definida para el experimento.
+
+Las condiciones principales de B0 son:
+
+\begin{itemize}
+    \item $V_{DC}=540\,\mathrm{V}$;
+    \item $\omega^\ast=157.079633\,\mathrm{rad/s}$;
+    \item $\Delta t=50\,\mu\mathrm{s}$;
+    \item duración total de $20\,\mathrm{s}$;
+    \item aplicación de una carga de $23\,\mathrm{N\,m}$ a $t=0.05\,\mathrm{s}$.
+\end{itemize}
+
+Estas condiciones pertenecen al experimento y no deben confundirse con parámetros intrínsecos de la máquina PMSM.
+
+\subsection{Resultado de velocidad}
+
+Al finalizar B0 se obtiene:
+
+\begin{equation}
+\omega_m=
+157.023729\,\mathrm{rad/s}.
+\end{equation}
+
+Frente a la referencia:
+
+\begin{equation}
+\omega^\ast=
+157.079633\,\mathrm{rad/s},
+\end{equation}
+
+el error final es:
+
+\begin{equation}
+e_\omega=
+\omega^\ast-\omega_m
+=
+0.055903785\,\mathrm{rad/s}.
+\end{equation}
+
+El error relativo respecto a la referencia es aproximadamente:
+
+\begin{equation}
+e_{\omega,\mathrm{rel}}
+=
+\SI{0.035589454}{\percent}.
+\end{equation}
+
+Este resultado caracteriza el comportamiento del experimento B0 bajo sus condiciones específicas. No se utiliza como una medida universal de exactitud física de la máquina.
+
+\subsection{Tiempo de establecimiento}
+
+El tiempo de establecimiento de referencia utilizado para B0, considerando la banda de \SI{1}{\percent}, es:
+
+\begin{equation}
+t_s=
+6.12635\,\mathrm{s}.
+\end{equation}
+
+Esta métrica caracteriza la respuesta del conjunto planta--controlador y, por tanto, no debe atribuirse exclusivamente a la planta M4.
+
+El resultado depende de la configuración del FOC, de los límites de corriente y tensión, de la referencia de velocidad, de la carga y del paso de integración.
+
+\subsection{Corrientes de referencia}
+
+Al finalizar B0 se obtiene aproximadamente:
+
+\begin{equation}
+i_d=-1.122894\,\mathrm{A},
+\end{equation}
+
+y:
+
+\begin{equation}
+i_q=35.743789\,\mathrm{A}.
+\end{equation}
+
+La referencia de corriente $i_q$ es:
+
+\begin{equation}
+i_q^\ast=
+35.761422\,\mathrm{A}.
+\end{equation}
+
+La cercanía entre $i_q$ e $i_q^\ast$ constituye una evidencia del seguimiento de corriente dentro de la condición final del experimento.
+
+No obstante, el comportamiento transitorio debe analizarse por separado debido a que el máximo absoluto de $i_q$ observado durante B0 alcanza aproximadamente:
+
+\begin{equation}
+|i_q|_{\max}
+=
+120.2163\,\mathrm{A}.
+\end{equation}
+
+Este valor debe interpretarse en el contexto de los límites utilizados por el FOC reconstruido y no como una nueva especificación nominal de la máquina.
+
+\subsection{Par electromagnético}
+
+El par final obtenido en B0 es:
+
+\begin{equation}
+T_e=
+23.000056\,\mathrm{N\,m}.
+\end{equation}
+
+La proximidad entre el par electromagnético final y la carga aplicada de $23\,\mathrm{N\,m}$ es consistente con la condición de régimen estacionario del experimento.
+
+El resultado verifica además la coherencia interna entre el par calculado por la planta y la dinámica mecánica implementada.
+
+No implica que el modelo concentrado reproduzca todos los mecanismos de generación de par presentes en la máquina física.
+
+\subsection{\texorpdfstring{Tensión en el plano $dq$}{Tensión en el plano dq}}
+
+La magnitud máxima del vector de tensión $dq$ observada durante B0 es aproximadamente:
+
+\begin{equation}
+|V_{dq}|_{\max}
+=
+296.1843\,\mathrm{V}.
+\end{equation}
+
+La tensión utilizada por el controlador está condicionada por el límite definido en la implementación del FOC:
+
+\begin{equation}
+V_{\max}
+=
+0.95
+\frac{V_{DC}}{\sqrt{3}}.
+\end{equation}
+
+Para $V_{DC}=540\,\mathrm{V}$, este límite constituye una condición del accionamiento utilizado en el experimento y no un parámetro intrínseco del motor.
+
+\subsection{Validación de las señales PWM}
+
+Durante B0 no se detectaron valores PWM fuera del intervalo:
+
+\begin{equation}
+0\leq D_{A,B,C}\leq1.
+\end{equation}
+
+El resultado registrado para el número de muestras fuera del intervalo permitido es cero.
+
+Esta comprobación verifica la consistencia de la interfaz entre el controlador y el modelo eléctrico M3 bajo las condiciones de B0.
+
+No demuestra por sí sola la fidelidad de un inversor físico real, debido a que el modelo utilizado es una representación computacional del accionamiento.
+
+\subsection{Coherencia energética y de potencia}
+
+Una etapa posterior de validación deberá incorporar balances energéticos y de potencia.
+
+Para el modelo eléctrico pueden analizarse:
+
+\begin{equation}
+P_{\mathrm{el}}
+=
+v_ai_a+
+v_bi_b+
+v_ci_c.
+\end{equation}
+
+La potencia mecánica puede expresarse como:
+
+\begin{equation}
+P_{\mathrm{mec}}
+=
+T_e\omega_m.
+\end{equation}
+
+La diferencia entre potencia eléctrica y mecánica debe interpretarse considerando las pérdidas y los elementos que estén realmente incluidos en el modelo.
+
+En la implementación M4 actual no se dispone todavía de un modelo completo y validado de pérdidas eléctricas, magnéticas, mecánicas y térmicas. Por ello, el balance energético completo se considera una línea de validación futura.
+
+\subsection{Validación de la dinámica mecánica}
+
+La ecuación:
+
+\begin{equation}
+J\dot{\omega}_m
+=
+T_e-T_{\mathrm{load}}
+\end{equation}
+
+permite verificar la consistencia entre la diferencia de pares y la aceleración obtenida numéricamente.
+
+En régimen estacionario, cuando la aceleración se aproxima a cero:
+
+\begin{equation}
+T_e\approx T_{\mathrm{load}},
+\end{equation}
+
+siempre dentro de la resolución numérica y de los elementos mecánicos incluidos en el modelo.
+
+La validación no incluye actualmente un modelo activo de $B$ ni de $T_{\mathrm{fric}}$. Ambos parámetros permanecen pendientes de verificación y no deben incorporarse como valores históricos sin trazabilidad.
+
+\subsection{Correspondencia con la implementación MATLAB/Simscape}
+
+La relación entre Python y MATLAB/Simscape se utiliza como correspondencia metodológica y de trazabilidad.
+
+La reconstrucción Python implementa explícitamente las ecuaciones que han sido documentadas en los capítulos anteriores. MATLAB/Simscape constituye la referencia de implementación física y documental recuperada del proyecto.
+
+La validación no se formula como una afirmación de reproducción interna exacta de Simscape.
+
+En particular, la ecuación de par implementada en M4 se considera una ecuación de referencia del modelo concentrado y no una afirmación sobre la ley interna exacta utilizada por un bloque propietario de Simscape.
+
+La comparación futura deberá realizarse mediante variables observables y condiciones de ensayo equivalentes, en lugar de asumir identidad de implementación.
+
+\subsection{Correspondencia con datos del fabricante}
+
+La validación documental futura deberá comparar el comportamiento calculado con los datos publicados para la máquina de referencia.
+
+Entre los elementos de comparación se encuentran:
+
+\begin{itemize}
+    \item velocidad nominal;
+    \item par nominal;
+    \item corriente nominal;
+    \item velocidad mecánica máxima;
+    \item par máximo;
+    \item corriente máxima;
+    \item características $M-n$;
+    \item constantes $k_T$ y $k_E$;
+    \item condiciones térmicas asociadas a los datos.
+\end{itemize}
+
+La comparación debe conservar las condiciones de temperatura, tensión del enlace DC, tipo de alimentación y región de operación indicadas en la documentación.
+
+No debe compararse una trayectoria de simulación bajo una condición determinada con un punto de catálogo obtenido bajo otra condición sin registrar previamente esa diferencia.
+
+\subsection{\texorpdfstring{Validación de la curva $M-n$}{Validación de la curva M-n}}
+
+Las curvas oficiales $M-n$ constituyen una fuente de evidencia especialmente relevante para las siguientes etapas.
+
+La documentación Siemens presenta regiones de operación asociadas a diferentes condiciones del convertidor y del enlace DC.
+
+La futura digitalización de estas curvas deberá conservar:
+
+\begin{itemize}
+    \item fuente documental;
+    \item página;
+    \item condición eléctrica;
+    \item condición térmica;
+    \item variante documental;
+    \item configuración de la máquina;
+    \item versión del modelo utilizado para la comparación.
+\end{itemize}
+
+La digitalización deberá realizarse a partir de la gráfica documental disponible. No se introducirán puntos inventados para completar regiones que no puedan extraerse con suficiente precisión.
+
+\subsection{Validación de los mapas electromagnéticos}
+
+Los archivos recuperados durante la reconstrucción contienen estructuras relacionadas con mapas de flujo, torque e inductancias.
+
+Sin embargo, su presencia dentro de los artefactos recuperados no constituye automáticamente evidencia suficiente para utilizarlos como mapas validados de la máquina.
+
+Antes de incorporarlos al modelo activo deberá verificarse:
+
+\begin{itemize}
+    \item significado físico de cada eje;
+    \item unidades;
+    \item convenciones de signo;
+    \item coordenadas de corriente;
+    \item referencia angular;
+    \item relación entre las tablas;
+    \item procedencia;
+    \item correspondencia con la máquina de referencia.
+\end{itemize}
+
+Mientras esta verificación no se complete, las tablas permanecen como material recuperado y trazable, pero no como fuente activa del modelo M4.
+
+\subsection{Validación de la dependencia angular}
+
+El modelo M4 actual no incorpora una dependencia angular detallada de las inductancias ni del flujo.
+
+Por tanto, todavía no se ha validado mediante el modelo actual:
+
+\begin{itemize}
+    \item variación angular del flujo;
+    \item ondulación de torque;
+    \item cogging torque;
+    \item armónicos espaciales;
+    \item efectos de ranurado;
+    \item dependencia angular de las inductancias.
+\end{itemize}
+
+Estas propiedades pertenecen a niveles superiores de fidelidad y deberán validarse mediante mapas, FEM, ROM o evidencia experimental adecuada.
+
+\subsection{Validación térmica}
+
+La caracterización documental proporciona información térmica de la máquina, pero la planta M4 no incorpora todavía una dinámica térmica completa.
+
+Por ello, los valores térmicos almacenados en la parametrización se consideran datos de caracterización y trazabilidad.
+
+La validación térmica futura deberá incorporar al menos:
+
+\begin{itemize}
+    \item pérdidas eléctricas;
+    \item pérdidas dependientes de la velocidad;
+    \item pérdidas magnéticas cuando corresponda;
+    \item temperatura de devanados;
+    \item temperatura del imán;
+    \item condiciones de refrigeración;
+    \item evolución temporal.
+\end{itemize}
+
+No se presenta el modelo M4 actual como un modelo térmico validado.
+
+\subsection{Validación de pérdidas}
+
+La planta actual representa de manera explícita la resistencia estatórica, pero no contiene un modelo completo de pérdidas magnéticas, mecánicas y térmicas.
+
+Por tanto, una validación energética completa queda fuera del alcance de la versión M4.
+
+La incorporación posterior de pérdidas deberá realizarse de manera trazable y sin mezclar parámetros históricos de otras reconstrucciones con la parametrización actual.
+
+\subsection{Resultado reproducible y trazabilidad}
+
+Los resultados B0 cuentan con identificadores criptográficos para conservar la relación entre la trayectoria calculada y sus métricas.
+
+La trayectoria registrada posee el hash:
+
+\begin{equation}
+H_{\mathrm{traj}}
+=
+\texttt{68c89e3d88ed51d18dd9fe07061d1185169aa95c7dd6a43846d1ba173b914278}.
+\end{equation}
+
+Las métricas asociadas poseen el hash:
+
+\begin{equation}
+H_{\mathrm{metrics}}
+=
+\texttt{c0f4fc2e56430b912089660173a18db8808bd6a42512e1691c977a68b1a002ea}.
+\end{equation}
+
+Estos identificadores permiten comprobar posteriormente que los archivos de resultados utilizados para generar las tablas y figuras del reporte corresponden al mismo conjunto de resultados.
+
+El objetivo de esta trazabilidad es evitar que los números presentados en el documento se desvinculen del experimento que los produjo.
+
+\subsection{Separación entre validación de planta y validación de control}
+
+Es necesario distinguir entre una propiedad de la planta y una propiedad del conjunto planta--controlador.
+
+Por ejemplo, el error final de velocidad, el tiempo de establecimiento y el máximo transitorio de corriente dependen de la interacción entre:
+
+\begin{itemize}
+    \item planta M4;
+    \item modelo eléctrico M3;
+    \item FOC;
+    \item límites de tensión;
+    \item límites de corriente;
+    \item referencia;
+    \item carga;
+    \item paso de integración.
+\end{itemize}
+
+Por tanto, B0 valida principalmente la capacidad del conjunto implementado para ejecutar una trayectoria cerrada reproducible.
+
+La validación aislada de la planta requiere además pruebas en las que puedan estudiarse sus ecuaciones y respuestas sin atribuir automáticamente al motor los resultados producidos por el controlador.
+
+\subsection{Discrepancias conocidas}
+
+La validación debe conservar las discrepancias conocidas en lugar de ocultarlas mediante ajustes posteriores.
+
+Entre ellas se encuentran:
+
+\begin{itemize}
+    \item $\lambda_m=0.107245\,\mathrm{Wb}$ en la planta M4 frente a $\lambda_m=0.1100\,\mathrm{Wb}$ en la reconstrucción histórica del FOC;
+    \item $225\,\mathrm{A}$ como corriente máxima documentada de la máquina frente a los límites históricos utilizados por el FOC reconstruido;
+    \item $R_s=0.05\,\Omega$ en M4 frente a $0.046\,\Omega$ documentado a $20\,^{\circ}\mathrm{C}$;
+    \item ausencia actual de $B$ y $T_{\mathrm{fric}}$ en la parametrización activa;
+    \item igualdad $L_d=L_q$ como hipótesis del modelo concentrado.
+\end{itemize}
+
+Estas diferencias forman parte de la trazabilidad del proceso de reconstrucción y constituyen puntos de trabajo para las siguientes iteraciones.
+
+\subsection{Criterio de aceptación del modelo M4}
+
+El modelo M4 puede considerarse apto para su función actual cuando se cumplan simultáneamente las siguientes condiciones:
+
+\begin{itemize}
+    \item los parámetros utilizados sean identificables y trazables;
+    \item las ecuaciones implementadas correspondan a la formulación documentada;
+    \item la integración numérica sea reproducible;
+    \item las interfaces de planta estén definidas;
+    \item los experimentos puedan repetirse con la misma configuración;
+    \item los resultados puedan asociarse a archivos y versiones concretas;
+    \item las limitaciones del modelo estén explícitamente documentadas.
+\end{itemize}
+
+Este criterio no exige que M4 reproduzca todos los fenómenos de la máquina física. Exige que su alcance de representación esté claramente delimitado.
+
+\subsection{Evolución de la validación}
+
+La validación deberá evolucionar junto con el nivel de fidelidad de la planta.
+
+El proceso previsto es:
+
+\begin{equation}
+\mathrm{M4}
+\rightarrow
+\mathrm{Mapas}
+\rightarrow
+\mathrm{NoLineal}
+\rightarrow
+\mathrm{FEM/ROM}
+\rightarrow
+\mathrm{DigitalTwin}.
+\end{equation}
+
+En cada etapa deberán incorporarse nuevas pruebas específicas.
+
+Para los mapas se validarán coordenadas, unidades y correspondencia física.
+
+Para el modelo no lineal se validarán saturación, anisotropía y dependencia angular.
+
+Para FEM y ROM se validarán resultados espaciales, extracción de parámetros y reducción de orden.
+
+Para el Digital Twin se validará la correspondencia entre diferentes niveles de representación y la capacidad de utilizar una misma planta para diferentes estrategias de control.
+
+\subsection{Relación con las estrategias de control}
+
+La validación de la planta constituye una condición previa para comparar de manera significativa FOC, MPC, ANFIS y TinyML.
+
+Una estrategia de control no debe evaluarse simultáneamente sobre versiones diferentes de la planta sin registrar explícitamente ese cambio.
+
+La arquitectura prevista mantiene:
+
+\begin{equation}
+\text{Planta común}
++
+\mathrm{Contratos}
++
+\mathrm{Controlador}
+\rightarrow
+\mathrm{Experimento}.
+\end{equation}
+
+FOC constituye actualmente el controlador funcional de referencia.
+
+MPC representa una estrategia posterior que podrá utilizar la representación de la planta para predicción.
+
+ANFIS se plantea como capa supervisora o adaptativa y no como sustituto del controlador principal.
+
+TinyML corresponde a una etapa posterior de exploración de inteligencia embebida.
+
+\subsection{Límites de la validación actual}
+
+La evidencia disponible permite validar actualmente la consistencia matemática, la ejecución reproducible, la parametrización explícita y el comportamiento del experimento B0 bajo las condiciones definidas.
+
+Todavía no permite afirmar una validación completa de:
+
+\begin{itemize}
+    \item saturación magnética;
+    \item mapas electromagnéticos físicos validados;
+    \item dependencia angular completa;
+    \item cogging torque;
+    \item armónicos espaciales;
+    \item pérdidas completas;
+    \item dinámica térmica;
+    \item modelo FEM;
+    \item ROM derivado y validado;
+    \item correspondencia experimental completa en todo el rango de operación.
+\end{itemize}
+
+Esta distinción es fundamental para conservar la integridad científica de la reconstrucción.
+
+\subsection{Síntesis de la validación}
+
+La validación actual establece una base reproducible para la planta PMSM M4.
+
+La consistencia de parámetros permite identificar qué valores utiliza realmente la implementación. La formulación matemática permite verificar las ecuaciones. La integración numérica permite reproducir la trayectoria. B0 demuestra que la cadena M3--M6--M4 puede ejecutarse de manera cerrada bajo una configuración definida.
+
+Los resultados obtenidos deben interpretarse dentro del alcance del modelo y del experimento.
+
+La evidencia actual no se extiende automáticamente a fenómenos que M4 todavía no representa. Por ello, la siguiente evolución debe aumentar la fidelidad física sin perder la trazabilidad establecida.
+
+\subsection{Cierre del capítulo}
+
+La validación de la planta PMSM se establece como un proceso progresivo y trazable, no como una única prueba final.
+
+El modelo M4 actual permite validar la consistencia de la parametrización, las ecuaciones implementadas, la integración numérica y la ejecución reproducible del experimento B0.
+
+La correspondencia con MATLAB/Simscape y con la documentación Siemens proporciona referencias adicionales, pero cada comparación debe conservar las condiciones bajo las cuales fue obtenida.
+
+Las limitaciones actuales quedan explícitamente delimitadas. Los mapas electromagnéticos, el modelo no lineal, FEM, ROM, pérdidas completas y dinámica térmica requieren etapas posteriores de desarrollo y validación.
+
+Con esta base, el siguiente capítulo puede abordar los mapas electromagnéticos como una nueva fuente de información física para aumentar progresivamente la fidelidad de la planta.

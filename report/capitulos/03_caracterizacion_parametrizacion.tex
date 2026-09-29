@@ -1,0 +1,402 @@
+\section{Caracterización y parametrización de la máquina}
+
+\subsection{Criterio de caracterización}
+
+La caracterización de la máquina tiene como finalidad transformar la información física y documental identificada en el capítulo anterior en un conjunto de parámetros utilizables por la planta digital. Esta transformación no consiste únicamente en copiar valores desde la documentación del fabricante. Cada magnitud debe conservar su origen, condición de operación, unidad, procedimiento de obtención y estado de verificación.
+
+Para mantener la trazabilidad durante la construcción del modelo se adopta una clasificación de cuatro estados:
+
+\begin{itemize}
+    \item \textbf{CONFIRMED}: valor respaldado directamente por documentación de referencia o por una derivación considerada cerrada a partir de datos documentales.
+    \item \textbf{PROPOSED}: valor o representación adoptada para una etapa del modelo, cuya utilización es explícitamente una decisión de modelado.
+    \item \textbf{PENDING\_VERIFICATION}: información recuperada o derivada cuya procedencia, interpretación o equivalencia física todavía requiere comprobación.
+    \item \textbf{HISTORICAL}: valor conservado únicamente como evidencia de una implementación anterior y que no constituye la fuente de verdad de la parametrización actual.
+\end{itemize}
+
+Esta clasificación evita que un valor procedente de una reconstrucción anterior adquiera automáticamente el carácter de parámetro físico confirmado.
+
+\subsection{Parámetros electromecánicos de referencia}
+
+La siguiente tabla concentra los principales datos de la máquina utilizados como punto de partida de la planta digital.
+
+\begin{table}[H]
+\centering
+\caption{Datos físicos y electromecánicos de referencia.}
+\label{tab:parametros_documentales}
+\begin{tabular}{llll}
+\toprule
+Parámetro & Valor & Unidad & Estado \\
+\midrule
+Velocidad nominal & 4500 & rpm & CONFIRMED \\
+Par nominal & 46 & Nm & CONFIRMED \\
+Corriente nominal & 53 & A & CONFIRMED \\
+Par estático S1(100K) & 61 & Nm & CONFIRMED \\
+Corriente de rotor bloqueado & 67 & A & CONFIRMED \\
+Velocidad máxima & 8000 & rpm & CONFIRMED \\
+Par máximo & 150 & Nm & CONFIRMED \\
+Corriente máxima & 225 & A & CONFIRMED \\
+Número de polos $2p$ & 8 & -- & CONFIRMED \\
+Pares de polos $p$ & 4 & -- & CONFIRMED* \\
+Constante de par $k_T$ & 0.91 & Nm/A & CONFIRMED \\
+Constante de tensión $k_E$ & 58 & V/(1000 rpm) & CONFIRMED \\
+Resistencia a 20~$^\circ$C & 0.046 & $\Omega$ & CONFIRMED \\
+Inductancia de campo giratorio $L_D$ & 1.2 & mH & CONFIRMED \\
+Constante de tiempo térmica & 11 & min & CONFIRMED \\
+Inercia con freno & 0.00416 & kg\,m$^2$ & CONFIRMED \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\footnotesize
+*Valor derivado directamente de $2p=8$ mediante $p=4$.
+\end{table}
+
+Los valores de esta tabla constituyen la referencia documental de la máquina. No todos ellos se incorporan directamente como parámetros de estado del modelo M4. Algunos corresponden a límites de operación, condiciones térmicas o características del accionamiento y serán utilizados posteriormente para validación y comparación.
+
+\subsection{Separación entre datos de máquina y condiciones del accionamiento}
+
+Una consideración fundamental consiste en distinguir los parámetros propios de la máquina de las condiciones impuestas por el accionamiento.
+
+La tensión del enlace de corriente continua, por ejemplo, determina la capacidad eléctrica disponible para generar las tensiones de fase y limita la región de operación del accionamiento. Sin embargo, no constituye una propiedad intrínseca del rotor, estator o circuito magnético de la PMSM.
+
+Por esta razón, el valor de \SI{540}{V} utilizado en el experimento B0 se mantiene como una condición de configuración del accionamiento:
+
+\begin{equation}
+V_{DC,\mathrm{B0}}=\SI{540}{V}.
+\end{equation}
+
+No se incorpora este valor como parámetro permanente dentro de la definición física de la máquina.
+
+La misma separación se aplica a los límites de corriente y tensión utilizados por el controlador. Un límite impuesto por el FOC no sustituye automáticamente a la corriente máxima documentada para la máquina. Los dos valores pueden ser diferentes porque pertenecen a niveles funcionales distintos.
+
+\subsection{Resistencia de los devanados}
+
+La documentación de Siemens proporciona una resistencia de devanado de:
+
+\begin{equation}
+R_{20^\circ C}=\SI{0.046}{\ohm}.
+\end{equation}
+
+La implementación M4 actual utiliza:
+
+\begin{equation}
+R_s=\SI{0.05}{\ohm}.
+\end{equation}
+
+Estos valores no deben confundirse ni sobrescribirse entre sí. El primero corresponde al dato documental a \SI{20}{\celsius}; el segundo corresponde a la parametrización actualmente adoptada por el modelo M4.
+
+Por tanto, la diferencia se conserva explícitamente como parte de la trazabilidad:
+
+\begin{equation}
+R_{\mathrm{Siemens},20^\circ C}
+\neq
+R_{s,\mathrm{M4}}.
+\end{equation}
+
+La utilización de \SI{0.05}{\ohm} en M4 constituye una decisión de parametrización que deberá contrastarse posteriormente con las condiciones térmicas y con la respuesta eléctrica de la planta.
+
+\subsection{Inductancias}
+
+El fabricante proporciona una inductancia de campo giratorio de:
+
+\begin{equation}
+L_D=\SI{1.2}{mH}.
+\end{equation}
+
+La parametrización M4 utiliza:
+
+\begin{equation}
+L_d=L_q=\SI{1.2}{mH}.
+\end{equation}
+
+Esta igualdad representa una hipótesis de modelado para el nivel concentrado actual. No debe interpretarse como una caracterización exhaustiva de la máquina real.
+
+En particular, una máquina PMSM puede presentar dependencia de la inductancia con la corriente, saturación magnética, saliencia y dependencia angular. Dichos efectos requieren información adicional o modelos de mayor fidelidad. Por ello, la representación actual se considera un primer nivel de aproximación concentrada.
+
+La evolución prevista es:
+
+\begin{equation}
+L_d,L_q
+\longrightarrow
+L_d(i_d,i_q,\theta_e),
+L_q(i_d,i_q,\theta_e),
+\end{equation}
+
+cuando existan mapas electromagnéticos suficientemente sustentados.
+
+\subsection{Número de pares de polos}
+
+La documentación proporciona el número de polos mediante:
+
+\begin{equation}
+2p=8.
+\end{equation}
+
+De este dato se obtiene directamente:
+
+\begin{equation}
+p=4.
+\end{equation}
+
+El valor $p=4$ se utiliza posteriormente para relacionar las magnitudes eléctricas y mecánicas:
+
+\begin{equation}
+\omega_e=p\omega_m,
+\end{equation}
+
+y
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+Esta derivación constituye un ejemplo de parámetro que no necesita ser tratado como una hipótesis independiente: se obtiene directamente de un dato documental.
+
+\subsection{Flujo permanente del imán}
+
+El flujo permanente utilizado actualmente por la planta es:
+
+\begin{equation}
+\lambda_m=\SI{0.107245}{Wb}.
+\end{equation}
+
+Este valor no aparece como tal en la tabla de parámetros de Siemens utilizada como fuente principal. Se obtiene a partir de la constante de par documentada:
+
+\begin{equation}
+k_T=\SI{0.91}{Nm/A},
+\end{equation}
+
+y del número de pares de polos $p=4$.
+
+Utilizando la convención de corriente RMS adoptada para la derivación:
+
+\begin{equation}
+k_T=
+\frac{3}{2}\sqrt{2}\,p\,\lambda_m,
+\end{equation}
+
+por lo que:
+
+\begin{equation}
+\lambda_m=
+\frac{k_T}
+{\left(\frac{3}{2}\right)\sqrt{2}\,p}.
+\end{equation}
+
+Sustituyendo:
+
+\begin{equation}
+\lambda_m=
+\frac{0.91}
+{\left(\frac{3}{2}\right)\sqrt{2}(4)}
+\approx
+\SI{0.107245}{Wb}.
+\end{equation}
+
+Por tanto, el valor utilizado por M4 es un parámetro \textbf{derivado} a partir de información del fabricante y no un valor copiado directamente de la documentación.
+
+Su valor numérico se encuentra actualmente marcado como confirmado para la parametrización M4, mientras que su procedencia documental específica permanece bajo trazabilidad pendiente de verificación. Esta distinción se conserva para evitar confundir la confirmación de un valor numérico dentro del modelo con la demostración completa de su procedencia experimental.
+
+\subsection{Comparación con la constante de tensión}
+
+La documentación proporciona también:
+
+\begin{equation}
+k_E=\SI{58}{V/(1000\,rpm)}
+\end{equation}
+
+a \SI{20}{\celsius}.
+
+La conversión de esta magnitud a una constante equivalente en función de la velocidad angular permite obtener una segunda referencia para el flujo permanente. Sin embargo, las condiciones de temperatura y las convenciones de línea/fase y RMS/pico deben mantenerse explícitas durante la conversión.
+
+La existencia de una diferencia entre la estimación derivada desde $k_T$ y la estimación derivada desde $k_E$ no se interpreta automáticamente como un error de uno de los datos. Ambas constantes están asociadas a condiciones de operación diferentes y además poseen tolerancias de fabricación especificadas por el fabricante.
+
+Por ello, la estimación obtenida desde $k_T$ se mantiene como la utilizada actualmente por M4, mientras que la estimación asociada a $k_E$ se conserva como referencia independiente para futuras verificaciones.
+
+\subsection{Inercia mecánica}
+
+La documentación proporciona una inercia de:
+
+\begin{equation}
+J=\SI{27.4e-4}{kg\,m^2}
+\end{equation}
+
+sin freno y:
+
+\begin{equation}
+J=\SI{41.6e-4}{kg\,m^2}
+=\SI{0.00416}{kg\,m^2}
+\end{equation}
+
+con freno.
+
+La parametrización M4 actual utiliza:
+
+\begin{equation}
+J=\SI{0.00416}{kg\,m^2}.
+\end{equation}
+
+Por tanto, el modelo actual corresponde a la condición de inercia asociada a la configuración con freno indicada en la documentación.
+
+La elección debe conservarse como parte de la configuración de la planta, ya que la inercia modifica directamente la dinámica mecánica:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+T_e-T_L.
+\end{equation}
+
+\subsection{Parámetros térmicos conservados}
+
+La parametrización M4 conserva actualmente algunos coeficientes térmicos:
+
+\begin{equation}
+\alpha=3.93\times10^{-3}\;K^{-1},
+\end{equation}
+
+\begin{equation}
+\alpha_{\Phi}=-1.0\times10^{-3}\;K^{-1},
+\end{equation}
+
+y una temperatura de referencia:
+
+\begin{equation}
+T_{\mathrm{meas}}=\SI{298.15}{K}.
+\end{equation}
+
+Estos valores se mantienen almacenados para trazabilidad y desarrollos posteriores. No constituyen todavía una dinámica térmica completa de la máquina.
+
+La documentación Siemens proporciona una constante de tiempo térmica de aproximadamente \SI{11}{min}, pero no se dispone todavía de un modelo térmico completo con capacidad térmica, resistencias térmicas y estados suficientemente establecidos para incorporarlo como dinámica activa de M4.
+
+\subsection{Parámetros mecánicos pendientes}
+
+Los parámetros asociados a fricción viscosa y par de fricción no forman parte de la parametrización M4 actualmente adoptada.
+
+En particular:
+
+\begin{equation}
+B
+\end{equation}
+
+y
+
+\begin{equation}
+T_{\mathrm{fric}}
+\end{equation}
+
+permanecen pendientes de verificación.
+
+Valores encontrados en implementaciones históricas, como $B=\SI{0.001}{N\,m\,s/rad}$ y $T_{\mathrm{fric}}=\SI{0.5}{Nm}$, no se incorporan como parámetros confirmados de la máquina.
+
+La dinámica mecánica actual utiliza por tanto el par de carga externo como entrada:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}=T_e-T_L.
+\end{equation}
+
+Esta decisión permite mantener separado el modelo confirmado de la máquina de una representación de pérdidas mecánicas cuya identificación todavía no se ha cerrado.
+
+\subsection{Parámetros de la planta frente a parámetros del FOC}
+
+La caracterización de la máquina debe mantenerse separada de los parámetros utilizados posteriormente por el controlador.
+
+Por ejemplo, el modelo M4 utiliza:
+
+\begin{equation}
+\lambda_m=\SI{0.107245}{Wb},
+\end{equation}
+
+mientras que la implementación reconstruida del FOC conserva actualmente un valor histórico de:
+
+\begin{equation}
+\lambda_{m,\mathrm{FOC}}=\SI{0.1100}{Wb}.
+\end{equation}
+
+De manera similar, la documentación de la máquina proporciona una corriente máxima de \SI{225}{A}, mientras que el FOC reconstruido utiliza actualmente un límite de corriente $i_q$ de aproximadamente \SI{112.43}{A}.
+
+Estas diferencias no se corrigen silenciosamente en esta etapa. Se documentan como diferencias entre capas y configuraciones históricas para evitar perder la trazabilidad de la reconstrucción.
+
+El objetivo de la arquitectura es que la planta mantenga una parametrización propia y que los controladores reciban mediante contratos las magnitudes necesarias para operar sobre ella.
+
+\subsection{Tabla maestra de parametrización M4}
+
+La parametrización actualmente utilizada por la planta concentrada puede resumirse como:
+
+\begin{table}[H]
+\centering
+\caption{Parámetros principales de la planta PMSM M4.}
+\label{tab:parametros_m4}
+\begin{tabular}{llll}
+\toprule
+Parámetro & Valor & Unidad & Estado \\
+\midrule
+$R_s$ & 0.05 & $\Omega$ & CONFIRMED \\
+$M_s$ & $2.0\times10^{-5}$ & H & CONFIRMED \\
+$L_0$ & $1.6\times10^{-4}$ & H & CONFIRMED \\
+$L_d$ & $1.2\times10^{-3}$ & H & CONFIRMED \\
+$L_q$ & $1.2\times10^{-3}$ & H & CONFIRMED \\
+$\lambda_m$ & 0.107245 & Wb & CONFIRMED \\
+$p$ & 4 & -- & CONFIRMED \\
+$J$ & 0.00416 & kg\,m$^2$ & CONFIRMED \\
+$B$ & -- & N\,m\,s/rad & PENDING\_VERIFICATION \\
+$T_{\mathrm{fric}}$ & -- & Nm & PENDING\_VERIFICATION \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Los estados indicados en esta tabla describen la situación de la parametrización dentro del proyecto y no deben interpretarse como una certificación experimental de cada magnitud.
+
+\subsection{Niveles de fidelidad de la parametrización}
+
+La parametrización M4 representa el primer nivel de una evolución de fidelidad. El objetivo no es mantener indefinidamente todos los parámetros constantes, sino utilizar esta representación como base reproducible sobre la cual incorporar información adicional.
+
+La evolución prevista puede expresarse como:
+
+\begin{equation}
+\mathrm{M4}_{\mathrm{concentrated}}
+\rightarrow
+\mathrm{M4}_{\mathrm{maps}}
+\rightarrow
+\mathrm{M4}_{\mathrm{nonlinear}}
+\rightarrow
+\mathrm{FEM/ROM}
+\rightarrow
+\mathrm{Digital\ Twin}.
+\end{equation}
+
+En el segundo nivel, los parámetros electromagnéticos podrán convertirse en funciones del punto de operación. Por ejemplo:
+
+\begin{equation}
+\psi_d=\psi_d(i_d,i_q,\theta_e),
+\end{equation}
+
+\begin{equation}
+\psi_q=\psi_q(i_d,i_q,\theta_e),
+\end{equation}
+
+y:
+
+\begin{equation}
+T_e=T_e(i_d,i_q,\theta_e).
+\end{equation}
+
+Estas funciones no se consideran todavía parámetros confirmados de la máquina. Su construcción requiere datos electromagnéticos suficientemente trazables, procedentes de análisis, simulación, FEM, identificación experimental o una combinación documentada de estas fuentes.
+
+\subsection{Criterio de cierre de la parametrización}
+
+La parametrización de una etapa se considerará cerrada únicamente cuando cada magnitud empleada por el modelo pueda clasificarse según su procedencia y función.
+
+En consecuencia, el criterio de cierre no consiste solamente en disponer de un archivo de parámetros que permita ejecutar una simulación. Se requiere además conocer:
+
+\begin{enumerate}
+    \item de dónde procede cada parámetro;
+    \item bajo qué condición fue definido;
+    \item si fue publicado, derivado o propuesto;
+    \item en qué nivel del modelo se utiliza;
+    \item qué incertidumbre o limitación conserva;
+    \item y qué evidencia permitiría modificar su estado de verificación.
+\end{enumerate}
+
+Con este criterio, la parametrización deja de ser una colección de constantes aisladas y se convierte en una capa explícita de trazabilidad de la planta.
+
+El siguiente capítulo utilizará esta parametrización para describir la implementación de la planta PMSM M4, sus estados, interfaces, entradas, salidas y límites de fidelidad.

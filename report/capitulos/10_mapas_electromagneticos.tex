@@ -1,0 +1,631 @@
+\section{Mapas electromagnéticos}
+
+\subsection{Propósito del capítulo}
+
+El nivel M4 desarrollado hasta este punto representa la máquina PMSM mediante una parametrización concentrada y relaciones analíticas de flujo y par. Esta representación establece una base computacional reproducible y físicamente trazable.
+
+El siguiente nivel de enriquecimiento consiste en incorporar información electromagnética dependiente de las variables de operación. Para ello se consideran los mapas de flujo, inductancia y torque recuperados durante la reconstrucción del proyecto, así como la información que pueda generarse posteriormente mediante modelos de mayor fidelidad.
+
+El objetivo de este capítulo no es presentar automáticamente estos datos como mapas físicos validados. Su propósito es establecer qué estructuras existen, qué significado físico pueden tener, qué variables deben verificarse y bajo qué criterios podrán incorporarse posteriormente a la planta.
+
+Los mapas constituyen, por tanto, un mecanismo de enriquecimiento de la representación electromagnética. No sustituyen por sí mismos a la planta M4 ni constituyen todavía una validación independiente de la máquina.
+
+La evolución conceptual puede expresarse como:
+
+\begin{equation}
+\begin{aligned}
+\text{representación concentrada}
+&\rightarrow \text{información electromagnética}
+\\
+&\rightarrow \text{mapas trazables}
+\rightarrow \text{representación no lineal}.
+\end{aligned}
+\end{equation}
+
+La información FEM podrá constituir, a su vez, una fuente independiente de datos de alta fidelidad para generar, contrastar o validar estos mapas.
+
+\subsection{Motivación física}
+
+En una representación concentrada, las relaciones utilizadas por M4 son:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m
+\end{equation}
+
+\begin{equation}
+\psi_q=L_qi_q.
+\end{equation}
+
+Estas expresiones constituyen una aproximación de referencia en la cual $L_d$, $L_q$ y $\lambda_m$ permanecen constantes dentro del modelo.
+
+Una máquina PMSM real puede presentar, dependiendo de su geometría, material magnético, nivel de corriente y posición del rotor, fenómenos como saturación, anisotropía, dependencia angular del flujo, variación de las inductancias y componentes adicionales del par electromagnético.
+
+Por tanto, un modelo basado exclusivamente en parámetros constantes no representa necesariamente todos los estados electromagnéticos posibles de la máquina. La incorporación de mapas permite ampliar esa representación cuando la información disponible proporciona las variables y condiciones necesarias.
+
+\subsection{Origen de los datos recuperados}
+
+Durante la reconstrucción del proyecto se localizaron artefactos que contienen estructuras relacionadas con magnitudes electromagnéticas. Entre ellas aparecen variables y matrices asociadas a corrientes, flujo, derivadas de flujo, inductancias y torque.
+
+Estas estructuras constituyen evidencia de que existieron datos electromagnéticos dentro de los artefactos recuperados, pero su presencia no determina por sí misma:
+
+\begin{itemize}
+\item la procedencia exacta de cada muestra;
+\item las unidades originales;
+\item la convención de signos;
+\item la orientación angular utilizada;
+\item la definición exacta de los ejes de corriente;
+\item la correspondencia entre dimensiones de las matrices y variables físicas;
+\item el procedimiento mediante el cual fueron obtenidos los datos;
+\item si los datos proceden de FEM, identificación, interpolación u otra fuente.
+\end{itemize}
+
+Por esta razón, los datos recuperados permanecen inicialmente en estado de trazabilidad pendiente.
+
+\subsection{Estructuras electromagnéticas recuperadas}
+
+Entre las estructuras identificadas durante la reconstrucción aparecen nombres asociados a:
+
+\begin{itemize}
+\item vectores de corriente;
+\item vectores de coordenadas;
+\item matrices de flujo;
+\item derivadas de flujo respecto a corriente;
+\item derivadas de flujo respecto a posición;
+\item matrices de torque;
+\item matrices asociadas a $L_d$;
+\item matrices asociadas a $L_q$;
+\item componentes de flujo en coordenadas $dq0$;
+\item torque asociado a diferentes condiciones de corriente y posición;
+\item coeficientes relacionados con pérdidas.
+\end{itemize}
+
+Entre los artefactos recuperados se encuentran estructuras como:
+
+\begin{verbatim}
+iVec
+xVec
+dfluxdiMatrix
+dfluxdxMatrix
+TorqueMatrix
+LdMatrix
+LqMatrix
+PmMatrix
+fluxD_dq0
+fluxQ_dq0
+fluxA_dq0
+Torque_dq0
+fluxD_IBX
+fluxQ_IBX
+fluxA_IBX
+Torque_IBX
+rotorLossCoeff_k_h_DQ
+k_J_DQ
+k_ex_DQ
+\end{verbatim}
+
+Estos nombres se conservan como trazabilidad de los artefactos recuperados. No se interpretan como una especificación definitiva de la interfaz física hasta completar la verificación semántica correspondiente.
+
+En particular, nombres como \texttt{PmMatrix}, \texttt{xVec} o \texttt{fluxA\_dq0} se conservan inicialmente como identificadores de los artefactos y no se les asigna una interpretación física adicional que no haya sido demostrada.
+
+\subsection{Variables de corriente}
+
+Un mapa electromagnético requiere identificar de manera inequívoca las variables independientes utilizadas para construirlo.
+
+En el caso de un modelo $dq$, las variables fundamentales esperadas son:
+
+\begin{equation}
+i_d,\qquad i_q.
+\end{equation}
+
+Si además existe dependencia angular, debe incorporarse una coordenada de posición:
+
+\begin{equation}
+\theta_e
+\end{equation}
+
+o una variable angular equivalente cuya convención pueda determinarse.
+
+Un conjunto de datos que contenga únicamente valores de corriente no permite reconstruir un mapa físico completo si no se conoce el significado de cada eje.
+
+Por ello, antes de utilizar las matrices recuperadas se deberán verificar:
+
+\begin{itemize}
+\item rango de $i_d$;
+\item rango de $i_q$;
+\item unidades;
+\item resolución de cada eje;
+\item orden de los índices;
+\item correspondencia entre cada muestra y su condición angular;
+\item convención de corriente utilizada.
+\end{itemize}
+
+\subsection{Flujo en el eje d}
+
+En el modelo M4, el flujo en el eje $d$ se representa mediante:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m.
+\end{equation}
+
+En un mapa electromagnético general, esta relación puede escribirse como:
+
+\begin{equation}
+\psi_d=f_d(i_d,i_q,\theta_e).
+\end{equation}
+
+La diferencia entre ambas representaciones es fundamental.
+
+La primera corresponde a un modelo concentrado de parámetros constantes. La segunda permite representar una dependencia respecto de corriente y posición cuando los datos disponibles tienen esa resolución y trazabilidad.
+
+La transición de una expresión analítica a una función tabulada no debe realizarse únicamente sustituyendo una matriz en el código. Es necesario verificar previamente que la matriz representa la magnitud indicada y que sus ejes son compatibles con la formulación utilizada por la planta.
+
+\subsection{Flujo en el eje q}
+
+De manera análoga, M4 utiliza:
+
+\begin{equation}
+\psi_q=L_qi_q.
+\end{equation}
+
+Un modelo basado en mapas puede representarse como:
+
+\begin{equation}
+\psi_q=f_q(i_d,i_q,\theta_e).
+\end{equation}
+
+La dependencia respecto de $i_d$ puede aparecer cuando existe acoplamiento electromagnético y saturación. La dependencia angular puede aparecer cuando la distribución espacial del campo y la geometría de la máquina generan variaciones con la posición del rotor.
+
+Estas dependencias no se activan en la implementación M4 actual.
+
+\subsection{Inductancias diferenciales}
+
+Las estructuras recuperadas incluyen matrices identificadas como $L_d$ y $L_q$. Para utilizarlas correctamente es necesario determinar si representan inductancias constantes, secantes o diferenciales.
+
+Una posibilidad física es definir inductancias diferenciales mediante derivadas de flujo:
+
+\begin{equation}
+L_{dd}=
+\frac{\partial\psi_d}{\partial i_d},
+\end{equation}
+
+\begin{equation}
+L_{dq}=
+\frac{\partial\psi_d}{\partial i_q},
+\end{equation}
+
+\begin{equation}
+L_{qd}=
+\frac{\partial\psi_q}{\partial i_d},
+\end{equation}
+
+\begin{equation}
+L_{qq}=
+\frac{\partial\psi_q}{\partial i_q}.
+\end{equation}
+
+Sin embargo, no debe asumirse que las matrices recuperadas representan exactamente estas derivadas hasta verificar su definición original.
+
+La existencia de nombres como \texttt{dfluxdiMatrix} constituye una pista relevante para la investigación, pero no sustituye la comprobación de unidades, dimensiones y significado.
+
+\subsection{Torque electromagnético}
+
+En M4, el torque de referencia es:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p
+\left[
+\lambda_m i_q+
+(L_d-L_q)i_di_q
+\right].
+\end{equation}
+
+Para el caso $L_d=L_q$, esta expresión se reduce a:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p\lambda_m i_q.
+\end{equation}
+
+Un mapa electromagnético puede representar el torque como:
+
+\begin{equation}
+T_e=f_T(i_d,i_q,\theta_e).
+\end{equation}
+
+Esta representación permite capturar componentes que no aparecen explícitamente en el modelo concentrado, siempre que los datos hayan sido obtenidos y validados bajo condiciones físicas conocidas.
+
+La matriz \texttt{TorqueMatrix} recuperada se conserva como candidata a esta representación, pero permanece fuera del camino activo hasta completar su verificación.
+
+\subsection{Dependencia angular}
+
+La dependencia angular constituye una de las diferencias principales entre el nivel M4 y una representación electromagnética de mayor resolución.
+
+En M4, las expresiones analíticas no contienen una dependencia detallada de $\theta_e$ en las inductancias o en el flujo.
+
+Un mapa general puede expresarse como:
+
+\begin{equation}
+\psi_d=f_d(i_d,i_q,\theta_e),
+\qquad
+\psi_q=f_q(i_d,i_q,\theta_e).
+\end{equation}
+
+De igual manera:
+
+\begin{equation}
+T_e=f_T(i_d,i_q,\theta_e).
+\end{equation}
+
+La presencia de esta tercera coordenada permite representar potencialmente variaciones espaciales, pero requiere una definición inequívoca del cero angular, periodicidad, sentido de giro y sistema de referencia.
+
+\subsection{Relación entre flujo y torque}
+
+Los mapas de flujo y torque no deben tratarse como conjuntos independientes sin comprobar su consistencia.
+
+Si se dispone de:
+
+\begin{equation}
+\psi_d=f_d(i_d,i_q,\theta_e)
+\end{equation}
+
+y:
+
+\begin{equation}
+\psi_q=f_q(i_d,i_q,\theta_e),
+\end{equation}
+
+el torque electromagnético deberá mantener una relación consistente con las magnitudes de flujo y corriente utilizadas por la convención $dq$.
+
+La verificación futura deberá comprobar que las unidades, signos y convenciones empleadas por los mapas permiten recuperar un torque físicamente consistente.
+
+\subsection{Ejes y dimensiones}
+
+Un mapa multidimensional solamente puede utilizarse de forma reproducible si sus ejes están documentados.
+
+Para cada matriz deberán identificarse como mínimo:
+
+\begin{itemize}
+\item nombre físico de cada eje;
+\item unidad;
+\item número de muestras;
+\item mínimo;
+\item máximo;
+\item orden de almacenamiento;
+\item periodicidad angular, cuando corresponda;
+\item orientación positiva;
+\item origen angular;
+\item correspondencia con la matriz de salida.
+\end{itemize}
+
+La dimensión de una matriz no es suficiente para deducir automáticamente su significado físico.
+
+Por ejemplo, una matriz tridimensional puede representar distintas combinaciones de corriente y posición. La interpretación correcta debe derivarse de los vectores de coordenadas y de la evidencia de generación de los datos.
+
+\subsection{Unidades y convenciones}
+
+Las unidades constituyen una parte de la trazabilidad del mapa.
+
+Las magnitudes esperadas incluyen:
+
+\begin{itemize}
+\item corriente en A;
+\item flujo en Wb;
+\item inductancia en H;
+\item torque en N,m;
+\item posición angular en rad o grados;
+\item coeficientes de pérdidas en las unidades correspondientes a su definición.
+\end{itemize}
+
+No se realizará ninguna conversión silenciosa de unidades. Toda transformación necesaria para integrar los mapas a la planta deberá quedar documentada y, cuando sea posible, automatizada.
+
+\subsection{Estado actual de los mapas}
+
+El estado actual del proyecto distingue entre tres niveles:
+
+\begin{enumerate}
+\item estructuras recuperadas;
+\item mapas electromagnéticos semánticamente verificados;
+\item mapas electromagnéticos validados físicamente.
+\end{enumerate}
+
+Las estructuras recuperadas se encuentran disponibles para investigación y trazabilidad.
+
+Los mapas semánticamente verificados serán aquellos para los cuales se haya establecido el significado de sus ejes, unidades, dimensiones, convenciones y variables.
+
+La validación física requerirá además una referencia independiente adecuada, por ejemplo datos documentales, resultados FEM reproducibles o evidencia experimental.
+
+Por tanto:
+
+\begin{equation}
+\text{dato recuperado}
+\neq
+\text{mapa verificado}
+\neq
+\text{mapa validado}.
+\end{equation}
+
+\subsection{Estado de implementación en Python}
+
+La implementación Python conserva una representación analítica de referencia como camino activo del nivel M4.
+
+La representación de mapas de flujo mantiene el modelo:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m
+\end{equation}
+
+\begin{equation}
+\psi_q=L_qi_q.
+\end{equation}
+
+Los datos recuperados no se activan automáticamente. La interfaz de mapas conserva el principio de que una estructura recuperada debe pasar primero por una etapa de verificación antes de modificar el comportamiento reproducible de la planta M4.
+
+Esta decisión evita que una matriz recuperada de procedencia incompleta altere silenciosamente los resultados de referencia.
+
+\subsection{Criterios para activar un mapa}
+
+Antes de activar un mapa electromagnético deberán verificarse como mínimo:
+
+\begin{itemize}
+\item procedencia;
+\item unidades;
+\item dimensiones;
+\item ejes;
+\item orientación;
+\item convenciones $dq$;
+\item cobertura del dominio de operación;
+\item continuidad o comportamiento en los bordes;
+\item coherencia entre flujo, inductancias y torque;
+\item comportamiento fuera de la región tabulada;
+\item método de interpolación;
+\item reproducibilidad de la evaluación.
+\end{itemize}
+
+La activación deberá generar además una versión identificable del conjunto de datos para que los resultados puedan asociarse con una fuente concreta.
+
+\subsection{Interpolación y extrapolación}
+
+Una vez verificados los mapas, será necesario definir cómo se evalúan entre puntos tabulados.
+
+Una interpolación puede expresarse de manera general como:
+
+\begin{equation}
+\hat{f}(x)=\mathcal{I}\left(f_{\mathrm{map}},x\right),
+\end{equation}
+
+donde $\mathcal{I}$ representa el operador de interpolación seleccionado.
+
+La extrapolación fuera del dominio tabulado constituye un problema diferente. No debe suponerse que una interpolación válida dentro del dominio puede extenderse indefinidamente fuera de él.
+
+Por ello, una implementación futura deberá definir explícitamente:
+
+\begin{itemize}
+\item límites de cada eje;
+\item comportamiento en los bordes;
+\item política de extrapolación;
+\item saturación de consulta, si se utiliza;
+\item advertencias o errores fuera de dominio.
+\end{itemize}
+
+\subsection{Consistencia con M4}
+
+La transición hacia mapas debe conservar una referencia con respecto al modelo M4.
+
+En regiones donde los mapas puedan aproximarse por relaciones lineales, sus resultados deberán poder compararse con:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m
+\end{equation}
+
+y:
+
+\begin{equation}
+\psi_q=L_qi_q.
+\end{equation}
+
+De igual manera, el torque podrá compararse con:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p
+\left[
+\lambda_mi_q+
+(L_d-L_q)i_di_q
+\right].
+\end{equation}
+
+La comparación no busca demostrar que el mapa y M4 deban coincidir en todo el dominio. Su función es identificar dónde la representación concentrada deja de reproducir adecuadamente la información electromagnética disponible.
+
+\subsection{Saturación y anisotropía}
+
+Una de las motivaciones principales para incorporar mapas es representar fenómenos que no aparecen en la hipótesis de inductancias constantes.
+
+La saturación puede producir una variación de las derivadas de flujo respecto de las corrientes. La anisotropía puede producir diferencias entre las respuestas de los ejes $d$ y $q$.
+
+Estas propiedades deberán determinarse a partir de los datos, no suponerse solamente por la existencia de una matriz denominada $L_d$ o $L_q$.
+
+La incorporación de mapas permitirá posteriormente construir una representación no lineal cuando las variables y relaciones físicas hayan sido verificadas.
+
+\subsection{Pérdidas asociadas a los artefactos recuperados}
+
+Algunas estructuras recuperadas contienen nombres relacionados con coeficientes de pérdidas, entre ellos:
+
+\begin{verbatim}
+rotorLossCoeff_k_h_DQ
+k_J_DQ
+k_ex_DQ
+\end{verbatim}
+
+Estos elementos no se incorporan actualmente al modelo M4.
+
+La existencia de coeficientes recuperados no determina por sí misma:
+
+\begin{itemize}
+\item qué mecanismo de pérdida representan;
+\item cómo fueron identificados;
+\item cuáles son sus unidades;
+\item bajo qué velocidad y temperatura fueron obtenidos;
+\item si pertenecen a la misma variante de máquina;
+\item si fueron derivados de FEM, medición o ajuste.
+\end{itemize}
+
+Por ello se mantienen como material de trazabilidad pendiente de interpretación.
+
+\subsection{Relación con FEM}
+
+Los mapas electromagnéticos pueden proceder de modelos FEM, pero no debe inferirse automáticamente que la existencia de una matriz recuperada demuestra que se ejecutó un solver FEM dentro de la reconstrucción actual.
+
+La relación metodológica prevista puede representarse como:
+
+\begin{equation}
+\mathrm{FEM}
+\rightarrow
+\text{extracción de datos}
+\rightarrow
+\text{mapas}.
+\end{equation}
+
+Si los artefactos recuperados proceden efectivamente de una cadena FEM, esa procedencia deberá demostrarse mediante sus archivos de origen, documentación, metadatos o evidencia reproducible.
+
+La planta Python actual no contiene un solver FEM activo.
+
+\subsection{Relación con el modelo no lineal}
+
+Los mapas constituyen una fuente potencial para evolucionar el modelo M4 hacia una representación no lineal.
+
+El modelo futuro podrá reemplazar relaciones constantes por funciones tabuladas:
+
+\begin{equation}
+\psi_d=f_d(i_d,i_q,\theta_e)
+\end{equation}
+
+\begin{equation}
+\psi_q=f_q(i_d,i_q,\theta_e).
+\end{equation}
+
+El objetivo será mantener la misma estructura de estados e interfaces de planta cuando sea posible, modificando la representación interna de los fenómenos electromagnéticos.
+
+Esto permitirá conservar la separación entre planta y control y facilitará posteriormente la comparación entre diferentes niveles de fidelidad.
+
+\subsection{Preparación para FEM y ROM}
+
+Los mapas constituyen un puente entre la representación concentrada y las representaciones electromagnéticas de mayor fidelidad.
+
+Una cadena posible es:
+
+\begin{equation}
+\mathrm{FEM}
+\rightarrow
+\text{datos electromagnéticos}
+\rightarrow
+\text{mapas}
+\rightarrow
+\text{modelo no lineal y/o ROM}.
+\end{equation}
+
+Esta relación no implica que todo mapa deba proceder de FEM ni que todo modelo no lineal deba construirse exclusivamente a partir de mapas FEM. La fuente de cada conjunto de datos deberá mantenerse explícita.
+
+Cada transición deberá conservar la correspondencia entre variables físicas y variables computacionales.
+
+\subsection{Validación futura de los mapas}
+
+La validación de los mapas deberá realizarse progresivamente.
+
+Una primera etapa será la validación semántica:
+
+\begin{itemize}
+\item identificación de ejes;
+\item unidades;
+\item dimensiones;
+\item convenciones;
+\item origen angular;
+\item procedencia.
+\end{itemize}
+
+Una segunda etapa será la validación matemática:
+
+\begin{itemize}
+\item consistencia entre flujo e inductancias;
+\item consistencia del torque;
+\item continuidad;
+\item simetrías esperadas;
+\item periodicidad angular;
+\item comportamiento en el dominio de operación.
+\end{itemize}
+
+Una tercera etapa será la validación física mediante una referencia independiente.
+
+Esta separación evita que la correcta lectura de una matriz se confunda con la demostración de que representa fielmente la máquina.
+
+\subsection{Relación con la planta común}
+
+La incorporación futura de mapas debe preservar la planta como elemento común de la arquitectura de control.
+
+El objetivo es que FOC, MPC, ANFIS y TinyML puedan utilizar una misma representación física de referencia, con el nivel de fidelidad registrado explícitamente.
+
+La arquitectura conceptual permanece:
+
+\begin{equation}
+\text{control}
+\rightarrow
+\text{contrato}
+\rightarrow
+\text{accionamiento}
+\rightarrow
+\text{planta}
+\rightarrow
+\text{contrato}
+\rightarrow
+\text{realimentación}.
+\end{equation}
+
+La sustitución de M4 por una representación basada en mapas no debe modificar silenciosamente las interfaces del sistema.
+
+\subsection{Trazabilidad de versiones}
+
+Cada conjunto de mapas que llegue a utilizarse experimentalmente deberá identificarse mediante una versión o hash.
+
+Como mínimo deberán conservarse:
+
+\begin{itemize}
+\item fuente;
+\item fecha de extracción;
+\item archivo de origen;
+\item variables;
+\item unidades;
+\item ejes;
+\item método de interpolación;
+\item versión del modelo;
+\item hash del conjunto de datos;
+\item estado de validación.
+\end{itemize}
+
+De esta manera, un resultado experimental podrá asociarse inequívocamente con la versión de planta utilizada.
+
+\subsection{Estado actual y límites}
+
+El estado actual permite afirmar que existen estructuras recuperadas relacionadas con mapas electromagnéticos y que dichas estructuras pueden servir como material para una futura evolución de la planta.
+
+No permite afirmar todavía que:
+
+\begin{itemize}
+\item los mapas estén físicamente validados;
+\item todos sus ejes estén semánticamente verificados;
+\item sus unidades hayan sido confirmadas;
+\item procedan necesariamente de FEM;
+\item representen exactamente la unidad Siemens de referencia;
+\item puedan activarse sin una etapa adicional de verificación.
+\end{itemize}
+
+Por tanto, el camino activo de M4 permanece basado en la representación analítica conservadora, mientras la información electromagnética recuperada constituye una fuente de enriquecimiento en proceso de trazabilidad y verificación.
+
+\subsection{Cierre del capítulo}
+
+Los mapas electromagnéticos representan un mecanismo fundamental para aumentar el contenido físico de la representación PMSM más allá de los parámetros concentrados de M4. Su valor potencial reside en permitir que el modelo evolucione desde parámetros constantes hacia relaciones dependientes de corriente y, cuando exista evidencia suficiente, de posición angular.
+
+La reconstrucción actual conserva estructuras relacionadas con flujo, torque, inductancias y pérdidas. Estas estructuras constituyen material de trazabilidad y una fuente para futuras investigaciones, pero no se presentan todavía como mapas electromagnéticos físicamente validados.
+
+El siguiente paso metodológico consiste en verificar sus ejes, unidades, dimensiones, convenciones y procedencia. Una vez cerrada esa trazabilidad podrá evaluarse su incorporación a un modelo no lineal y su relación con información FEM y modelos reducidos.
+
+Así, los mapas permiten aumentar la fidelidad física sin perder reproducibilidad, trazabilidad ni separación entre planta y control.

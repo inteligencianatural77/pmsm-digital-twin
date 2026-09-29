@@ -23,3 +23,13 @@ results/**/trajectory.csv
 
 # Build metadata generado por pip
 pmsm_hybrid_control.egg-info/
+
+# ========================================
+# LATEX — ARTEFACTOS DE COMPILACION
+# ========================================
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot

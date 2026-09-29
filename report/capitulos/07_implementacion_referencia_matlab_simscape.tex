@@ -1,0 +1,825 @@
+\section{Implementación de referencia MATLAB/Simscape}
+
+\subsection{Propósito de la implementación de referencia}
+
+La formulación matemática desarrollada en los capítulos anteriores define la estructura física de la planta PMSM. Sin embargo, para establecer una referencia de implementación resulta necesario disponer de una representación ejecutable que permita observar el comportamiento dinámico de la máquina bajo condiciones de simulación.
+
+En este trabajo, MATLAB y Simscape constituyen una referencia de implementación física y una fuente de evidencia para la reconstrucción progresiva de la planta. Su función no consiste en sustituir la formulación matemática ni en convertirse automáticamente en la especificación permanente del sistema. Su función es proporcionar una realización computacional con la cual pueden contrastarse variables, condiciones de operación, estructuras de conexión y comportamientos dinámicos.
+
+La relación conceptual utilizada es:
+
+\begin{equation}
+\begin{aligned}
+\text{máquina física}
+&\rightarrow \text{documentación}
+\rightarrow \text{formulación matemática}
+\\
+&\rightarrow \text{implementación MATLAB/Simscape}
+\rightarrow \text{evidencia}
+\rightarrow \text{reconstrucción Python}.
+\end{aligned}
+\end{equation}
+
+Esta secuencia permite separar tres conceptos que podrían confundirse si se considera únicamente el archivo de simulación:
+
+\begin{itemize}
+    \item el modelo físico que se pretende representar;
+    \item la implementación concreta utilizada para simularlo;
+    \item la evidencia obtenida a partir de dicha implementación.
+\end{itemize}
+
+Esta separación es fundamental para conservar la trazabilidad del Digital Twin.
+
+\subsection{Origen de la implementación}
+
+La implementación de referencia se encuentra asociada al trabajo previo de modelado y validación de la máquina PMSM de referencia Siemens 1FT7087.
+
+La existencia de una implementación MATLAB/Simscape permitió disponer de una representación ejecutable antes de iniciar la reconstrucción completa en Python. Esto resulta especialmente importante en un proceso de migración o recuperación, porque proporciona un punto de comparación independiente del nuevo código.
+
+La implementación no debe interpretarse como una fuente única de todos los parámetros. Los parámetros de la máquina deben conservar su propia procedencia documental, derivada o de modelado, tal como se estableció en la caracterización de la máquina.
+
+Por tanto:
+
+\begin{equation}
+\text{Simscape}
+\neq
+\text{fuente automática de parámetros}.
+\end{equation}
+
+En cambio:
+
+\begin{equation}
+\text{Simscape}
+\rightarrow
+\text{implementación y evidencia de comportamiento}.
+\end{equation}
+
+Esta distinción permite evitar que un valor recuperado de una implementación histórica sea considerado automáticamente como una propiedad confirmada de la máquina.
+
+\subsection{Relación con la máquina Siemens 1FT7087}
+
+La implementación de referencia se interpreta dentro de la genealogía de la máquina Siemens 1FT7087 documentada en el capítulo 02.
+
+La máquina física constituye el origen del problema de modelado. La documentación del fabricante proporciona los datos nominales y las características disponibles. A partir de ellos se establece la parametrización y posteriormente se construye una representación matemática.
+
+MATLAB/Simscape proporciona una plataforma para realizar esa representación mediante componentes de simulación y bloques que permiten conectar dominios eléctricos y mecánicos.
+
+La cadena de trazabilidad puede representarse como:
+
+\begin{equation}
+\begin{aligned}
+\text{Siemens 1FT7087}
+&\rightarrow \text{datos documentales}
+\rightarrow \text{parámetros}
+\\
+&\rightarrow \text{modelo matemático}
+\rightarrow \text{Simscape}.
+\end{aligned}
+\end{equation}
+
+El sentido de esta cadena es importante: el modelo debe estar sustentado en la máquina y en la evidencia disponible, y no al contrario.
+
+\subsection{Representación física de la PMSM}
+
+Una implementación mediante Simscape permite representar la máquina desde una perspectiva física, conectando diferentes dominios y conservando relaciones entre variables eléctricas, electromagnéticas y mecánicas.
+
+Desde el punto de vista conceptual, la planta puede dividirse en:
+
+\begin{enumerate}
+    \item dominio eléctrico;
+    \item conversión electromecánica;
+    \item dominio mecánico;
+    \item medición y realimentación;
+    \item interfaz con el sistema de control.
+\end{enumerate}
+
+La máquina recibe excitación eléctrica y produce una respuesta electromecánica. El par desarrollado modifica la dinámica mecánica, mientras que la posición y velocidad del rotor participan en la evolución de las variables eléctricas.
+
+Esta estructura es coherente con el modelo de estados desarrollado anteriormente.
+
+\subsection{Correspondencia con el modelo matemático}
+
+Aunque Simscape puede resolver internamente las ecuaciones del componente físico, el modelo conceptual sigue siendo el mismo.
+
+Las principales magnitudes consideradas son:
+
+\begin{equation}
+i_d,\quad i_q,\quad
+\omega_m,\quad
+\theta_m,
+\end{equation}
+
+junto con las magnitudes eléctricas y mecánicas asociadas.
+
+El espacio de estados descrito anteriormente puede escribirse como:
+
+\begin{equation}
+\dot{x}=f(x,u,\Theta).
+\end{equation}
+
+Una implementación física de Simscape representa estas relaciones mediante componentes y conexiones. El solver se encarga posteriormente de resolver el sistema resultante.
+
+Por ello, no es necesario que el código Python y Simscape tengan la misma estructura interna para que exista una relación física entre ambos. Lo necesario es que las variables comparadas representen las mismas magnitudes y que las condiciones de simulación estén definidas.
+
+\subsection{Parámetros de la máquina y parámetros de simulación}
+
+Una distinción esencial consiste en separar los parámetros propios de la máquina de las condiciones utilizadas para realizar una simulación.
+
+Entre los parámetros de la máquina se encuentran:
+
+\begin{equation}
+R_s,\quad L_d,\quad L_q,\quad
+\lambda_m,\quad p,\quad J.
+\end{equation}
+
+En cambio, una simulación puede incorporar condiciones tales como:
+
+\begin{equation}
+V_{DC},
+\quad
+T_{\mathrm{load}},
+\quad
+\omega_{\mathrm{ref}},
+\quad
+\Delta t,
+\quad
+t_{\mathrm{stop}}.
+\end{equation}
+
+Estas magnitudes no deben mezclarse automáticamente.
+
+En particular, el voltaje del bus DC pertenece a las condiciones eléctricas del accionamiento y de la excitación de la máquina. No constituye una propiedad intrínseca de la PMSM equivalente a su resistencia, inductancia, flujo o inercia.
+
+Por ello, el valor de $V_{DC}$ debe documentarse dentro de la configuración eléctrica del experimento o del accionamiento correspondiente.
+
+\subsection{Condición del bus DC}
+
+La documentación del fabricante relaciona los datos nominales de la máquina con determinadas condiciones de alimentación y accionamiento.
+
+En la documentación de referencia se encuentra una condición nominal asociada a un enlace DC de 600 V. Durante la reconstrucción del proyecto también se identificó una condición de 540 V asociada a la configuración utilizada como base experimental.
+
+Ambos valores deben conservarse con su contexto.
+
+Por tanto, no se debe trasladar un valor de $V_{DC}$ a la parametrización intrínseca de la planta como si fuera una propiedad permanente de la máquina.
+
+La separación conceptual es:
+
+\begin{equation}
+\text{PMSM}
++
+\text{accionamiento}
++
+V_{DC}
+\rightarrow
+\text{condición de operación}.
+\end{equation}
+
+Esta separación resulta especialmente importante al comparar diferentes simulaciones.
+
+\subsection{Dominio mecánico}
+
+La implementación de referencia también permite observar la interacción entre el par electromagnético y la dinámica mecánica.
+
+La relación fundamental utilizada como referencia es:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+T_e-T_{\mathrm{load}}.
+\end{equation}
+
+La posición se obtiene mediante:
+
+\begin{equation}
+\frac{d\theta_m}{dt}
+=
+\omega_m.
+\end{equation}
+
+De esta forma, la respuesta mecánica no constituye un bloque independiente de la dinámica eléctrica. El par electromagnético generado por la máquina depende de las variables eléctricas y, a su vez, la velocidad mecánica modifica la velocidad eléctrica.
+
+La implementación de referencia permite observar esta interacción como parte del comportamiento global del sistema.
+
+\subsection{Transformaciones y variables de referencia}
+
+El modelo utiliza variables trifásicas y variables transformadas para representar el comportamiento eléctrico.
+
+La relación conceptual es:
+
+\begin{equation}
+abc
+\rightarrow
+\alpha\beta
+\rightarrow
+dq.
+\end{equation}
+
+La transformación a $dq$ permite expresar las ecuaciones eléctricas en un marco asociado al rotor.
+
+La posición eléctrica se relaciona con la posición mecánica mediante:
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+De forma equivalente:
+
+\begin{equation}
+\omega_e=p\omega_m.
+\end{equation}
+
+La implementación de referencia constituye una evidencia de cómo estas variables se integran en el modelo completo, mientras que su formulación matemática permanece definida de forma independiente en los capítulos anteriores.
+
+\subsection{Interacción entre planta y accionamiento}
+
+La PMSM no opera de manera aislada. Durante una simulación, las tensiones aplicadas a sus terminales dependen del sistema de accionamiento utilizado.
+
+Por ello es útil separar conceptualmente:
+
+\begin{equation}
+\text{fuente DC}
+\rightarrow
+\text{convertidor}
+\rightarrow
+\text{máquina PMSM}.
+\end{equation}
+
+El controlador actúa sobre el sistema de accionamiento, mientras que el accionamiento genera las condiciones eléctricas aplicadas a la máquina.
+
+Esta arquitectura permite distinguir entre:
+
+\begin{itemize}
+    \item variables de la máquina;
+    \item variables del convertidor;
+    \item variables del controlador;
+    \item condiciones externas de operación.
+\end{itemize}
+
+La separación resulta esencial para evitar atribuir a la planta parámetros que en realidad pertenecen al accionamiento o al experimento.
+
+\subsection{Qué aporta Simscape a la trazabilidad}
+
+La implementación de referencia aporta diferentes tipos de evidencia.
+
+En primer lugar, permite observar si las conexiones conceptuales entre los dominios eléctrico y mecánico son coherentes.
+
+En segundo lugar, permite establecer condiciones de simulación y observar respuestas temporales.
+
+En tercer lugar, proporciona una referencia independiente frente a la implementación Python.
+
+Finalmente, permite conservar información sobre la arquitectura histórica del sistema, incluso cuando determinadas partes de esa arquitectura posteriormente sean sustituidas.
+
+La evidencia obtenida debe clasificarse según su naturaleza.
+
+Un resultado de simulación puede constituir evidencia de comportamiento bajo determinadas condiciones, pero no necesariamente evidencia documental de un parámetro físico.
+
+Esta distinción se mantiene durante toda la reconstrucción.
+
+\subsection{El papel histórico de \texttt{skeleton.slx}}
+
+Dentro del material recuperado existe un modelo denominado \texttt{skeleton.slx}. Su importancia para este proyecto es principalmente histórica y arquitectónica.
+
+El archivo permite estudiar cómo se organizaban determinados bloques del sistema, qué conexiones existían entre ellos y qué señales se utilizaban en la arquitectura anterior.
+
+Por esta razón se conserva como referencia de trazabilidad.
+
+Sin embargo, no se considera la especificación permanente de la planta.
+
+La interpretación adoptada es:
+
+\begin{equation}
+\texttt{skeleton.slx}
+=
+\text{referencia histórica/temporal}.
+\end{equation}
+
+No:
+
+\begin{equation}
+\texttt{skeleton.slx}
+=
+\text{especificación definitiva}.
+\end{equation}
+
+Esta distinción permite aprovechar la información recuperada sin quedar condicionados por decisiones arquitectónicas que pertenecían a una etapa anterior del proyecto.
+
+\subsection{Autopsia de la arquitectura histórica}
+
+El análisis del \texttt{skeleton.slx} permitió identificar una arquitectura organizada alrededor de diferentes módulos y escalas de control.
+
+Entre los elementos recuperados se encuentran referencias a:
+
+\begin{itemize}
+    \item una etapa eléctrica;
+    \item una etapa de máquina;
+    \item control de corriente;
+    \item control de velocidad;
+    \item transformaciones de coordenadas;
+    \item señales de adaptación;
+    \item bloques asociados a capas posteriores de la arquitectura.
+\end{itemize}
+
+La información recuperada es útil para reconstruir la genealogía del sistema, pero no todos los elementos poseen el mismo nivel de madurez o evidencia.
+
+Por ello, el contenido del modelo histórico debe clasificarse antes de incorporarlo a la implementación actual.
+
+\subsection{Escalas temporales recuperadas}
+
+La autopsia histórica identificó una configuración basada en un paso de integración de:
+
+\begin{equation}
+5\times10^{-5}\,\mathrm{s},
+\end{equation}
+
+equivalente a una frecuencia de 20 kHz.
+
+También se identificaron escalas diferenciadas para el control de corriente, el control de velocidad y otras capas de la arquitectura.
+
+En particular, la reconstrucción histórica utiliza:
+
+\begin{equation}
+T_{s,\mathrm{current}}=50\,\mu\mathrm{s},
+\end{equation}
+
+y:
+
+\begin{equation}
+T_{s,\mathrm{speed}}=200\,\mu\mathrm{s}.
+\end{equation}
+
+Estos valores constituyen evidencia de la configuración histórica del sistema de control. No deben confundirse con constantes físicas de la PMSM.
+
+La reconstrucción actual utiliza $50\,\mu\mathrm{s}$ como paso base del experimento B0, manteniendo esta condición como parte de la configuración experimental y no como parámetro de la planta.
+
+\subsection{Parámetros de control recuperados}
+
+La autopsia también permitió recuperar valores utilizados históricamente en el control de corriente y velocidad.
+
+Entre ellos:
+
+\begin{equation}
+K_{p,id}=K_{p,iq}=15.0796,
+\end{equation}
+
+\begin{equation}
+K_{i,id}=K_{i,iq}=628.3185,
+\end{equation}
+
+y para el lazo de velocidad:
+
+\begin{equation}
+K_{p,\omega}=5.2804,
+\end{equation}
+
+\begin{equation}
+K_{i,\omega}=1.2693.
+\end{equation}
+
+Estos valores pertenecen al controlador reconstruido y no deben incorporarse al conjunto de parámetros de la planta.
+
+Esta distinción permite mantener separados:
+
+\begin{equation}
+\Theta_{\mathrm{plant}}
+\neq
+\Theta_{\mathrm{FOC}}.
+\end{equation}
+
+El primer conjunto describe la máquina, mientras que el segundo describe una implementación particular del controlador.
+
+\subsection{Diferencias de parametrización recuperadas}
+
+La recuperación histórica también puso de manifiesto que no todos los valores utilizados anteriormente coinciden con la parametrización M4 actualmente establecida.
+
+Un ejemplo importante es el enlace de flujo.
+
+La planta M4 utiliza actualmente:
+
+\begin{equation}
+\lambda_m=0.107245\,\mathrm{Wb},
+\end{equation}
+
+mientras que determinadas implementaciones históricas del FOC utilizaban:
+
+\begin{equation}
+\lambda_m=0.1100\,\mathrm{Wb}.
+\end{equation}
+
+Estos valores no deben fusionarse silenciosamente.
+
+El primero pertenece a la parametrización M4 actualmente adoptada para la planta, mientras que el segundo corresponde a una configuración histórica del control reconstruido.
+
+La existencia de esta diferencia constituye precisamente un ejemplo de por qué la trazabilidad debe conservar el origen y el contexto de cada parámetro.
+
+\subsection{Límites de corriente recuperados}
+
+Otro ejemplo aparece en el límite de corriente utilizado por el control histórico.
+
+La documentación de la máquina contiene un valor de corriente máxima de 225 A asociado a las condiciones correspondientes del fabricante.
+
+La reconstrucción del controlador, en cambio, contiene un límite de $i_q$ de aproximadamente:
+
+\begin{equation}
+|i_q|\leq112.43\,\mathrm{A}.
+\end{equation}
+
+Este segundo valor pertenece a la estrategia de control reconstruida y no debe interpretarse como la corriente máxima física de la máquina.
+
+De esta manera:
+
+\begin{equation}
+I_{\mathrm{machine,max}}
+\neq
+I_{\mathrm{FOC,limit}}.
+\end{equation}
+
+La diferencia puede ser necesaria para definir una estrategia de operación, pero su significado debe permanecer documentado.
+
+\subsection{Límite de tensión del accionamiento}
+
+La arquitectura histórica también utiliza una limitación de tensión asociada al bus DC:
+
+\begin{equation}
+V_{\max}
+=
+0.95
+\frac{V_{DC}}{\sqrt{3}}.
+\end{equation}
+
+Esta relación pertenece a la cadena de accionamiento/control y no a la ecuación constitutiva de la máquina.
+
+Por tanto, la planta recibe finalmente las tensiones que resultan del sistema de accionamiento, mientras que el controlador determina sus referencias de tensión respetando los límites disponibles.
+
+Esta separación permite reutilizar la misma planta bajo diferentes condiciones de bus o estrategias de modulación.
+
+\subsection{Elementos que se conservaron como evidencia}
+
+El material MATLAB/Simscape recuperado puede utilizarse para conservar evidencia sobre:
+
+\begin{itemize}
+    \item estructura de la arquitectura anterior;
+    \item señales y conexiones históricas;
+    \item escalas temporales;
+    \item parámetros de control;
+    \item condiciones eléctricas;
+    \item relación entre control y máquina;
+    \item resultados de simulaciones anteriores;
+    \item decisiones de modelado realizadas durante etapas anteriores.
+\end{itemize}
+
+Estos elementos se almacenan conceptualmente como información de trazabilidad.
+
+Su presencia en el material histórico no implica que todos ellos deban permanecer activos en la arquitectura futura.
+
+\subsection{Elementos que no deben convertirse automáticamente en especificación}
+
+La recuperación también exige reconocer qué información no puede elevarse automáticamente a la categoría de requisito.
+
+Entre estos elementos se encuentran:
+
+\begin{itemize}
+    \item valores cuya procedencia no está confirmada;
+    \item parámetros de simulaciones históricas utilizados fuera de su contexto;
+    \item valores del controlador confundidos con parámetros de la planta;
+    \item bloques placeholder;
+    \item señales cuyo significado no haya sido establecido;
+    \item estructuras del \texttt{skeleton.slx} que pertenecían a una etapa temporal;
+    \item valores de modelos anteriores que contradicen la fuente M4 actualmente establecida.
+\end{itemize}
+
+Esta clasificación permite aprovechar la recuperación sin introducir errores de trazabilidad en la nueva implementación.
+
+\subsection{Relación entre Simscape y la reconstrucción Python}
+
+La migración a Python no pretende reproducir literalmente la estructura interna de Simscape.
+
+El objetivo es reconstruir de forma explícita y reproducible el comportamiento del modelo que puede justificarse mediante la evidencia disponible.
+
+La relación conceptual es:
+
+\begin{equation}
+\text{Simscape}
+\rightarrow
+\text{evidencia}
+\rightarrow
+\text{formulación}
+\rightarrow
+\text{Python}.
+\end{equation}
+
+Python permite hacer explícitas las ecuaciones, los parámetros y las decisiones numéricas que en un entorno de simulación física pueden estar encapsuladas en bloques.
+
+Esto facilita:
+
+\begin{itemize}
+    \item control de versiones;
+    \item experimentos reproducibles;
+    \item generación automática de datos;
+    \item construcción de mapas;
+    \item análisis numérico;
+    \item comparación de modelos;
+    \item preparación de futuras capas inteligentes.
+\end{itemize}
+
+La migración no significa eliminar el valor de MATLAB/Simscape. Significa separar su papel de referencia del papel de desarrollo reproducible que desempeña Python.
+
+\subsection{Condiciones de comparación entre implementaciones}
+
+Para comparar una simulación MATLAB/Simscape con una simulación Python no basta con observar si las curvas tienen una forma similar.
+
+La comparación debe especificar:
+
+\begin{itemize}
+    \item parámetros de la máquina;
+    \item condición de $V_{DC}$;
+    \item carga aplicada;
+    \item condiciones iniciales;
+    \item referencia de velocidad;
+    \item paso temporal;
+    \item duración;
+    \item estrategia de control;
+    \item señales utilizadas para la comparación.
+\end{itemize}
+
+De esta forma, una comparación puede distinguir entre diferencias debidas a la planta y diferencias debidas al experimento.
+
+Una condición de comparación bien definida puede expresarse conceptualmente como:
+
+\begin{equation}
+C=
+\{
+\Theta,
+V_{DC},
+T_{\mathrm{load}},
+x_0,
+\Delta t,
+t_{\mathrm{stop}},
+\text{control}
+\}.
+\end{equation}
+
+El conjunto $C$ forma parte de la trazabilidad del experimento.
+
+\subsection{Papel de MATLAB/Simscape en la validación}
+
+La implementación de referencia permite realizar una validación por capas.
+
+En una primera capa se verifica la coherencia física general.
+
+En una segunda capa se comparan variables dinámicas entre implementaciones.
+
+En una tercera capa se contrastan condiciones nominales y documentación de fabricante.
+
+En una cuarta capa, conforme aumente la fidelidad, se podrán comparar resultados frente a mapas electromagnéticos y posteriormente frente a modelos FEM o ROM.
+
+La validación debe ser incremental.
+
+No se considera suficiente que una simulación reproduzca una respuesta visualmente plausible. Cada nivel de fidelidad debe estar asociado a evidencia adecuada.
+
+\subsection{Relación con mapas electromagnéticos}
+
+La implementación de referencia constituye una base para identificar qué relaciones físicas deberán conservarse cuando el modelo evolucione hacia mapas.
+
+En el modelo concentrado:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m,
+\end{equation}
+
+\begin{equation}
+\psi_q=L_qi_q.
+\end{equation}
+
+En un modelo basado en mapas, estas relaciones pueden transformarse en funciones dependientes de corriente y posición:
+
+\begin{equation}
+\psi_d=
+f(i_d,i_q,\theta_e),
+\end{equation}
+
+\begin{equation}
+\psi_q=
+g(i_d,i_q,\theta_e).
+\end{equation}
+
+La implementación MATLAB/Simscape puede servir como referencia de comportamiento para comprobar que la sustitución de estas relaciones no introduce inconsistencias en la dinámica global.
+
+Sin embargo, los mapas deberán estar respaldados por datos propios o por evidencia cuya procedencia haya sido verificada.
+
+\subsection{Relación con FEM y ROM}
+
+La evolución hacia FEM y ROM representa un cambio de fidelidad, no un cambio de identidad de la planta.
+
+La misma máquina de referencia puede representarse mediante diferentes niveles:
+
+\begin{equation}
+\mathrm{M4}
+\rightarrow
+\mathrm{maps}
+\rightarrow
+\mathrm{nonlinear}
+\rightarrow
+\mathrm{FEM}
+\rightarrow
+\mathrm{ROM}.
+\end{equation}
+
+MATLAB/Simscape puede permanecer como plataforma de comparación durante esta evolución.
+
+Python puede utilizar los resultados para construir conjuntos de datos, mapas y modelos reducidos.
+
+Posteriormente, los modelos evolucionados pueden volver a integrarse en Simulink/Simscape para realizar comparaciones cruzadas.
+
+El flujo no es una sustitución unilateral de una plataforma por otra, sino un proceso de transferencia de conocimiento y evidencia.
+
+\subsection{Separación entre referencia y especificación}
+
+Una implementación de referencia puede contener decisiones que fueron adecuadas para una determinada etapa del proyecto, pero que posteriormente deban ser modificadas.
+
+Por esta razón, el presente trabajo distingue entre:
+
+\begin{equation}
+\text{referencia histórica}
+\end{equation}
+
+y:
+
+\begin{equation}
+\text{especificación actual}.
+\end{equation}
+
+La especificación actual se construye a partir de la evidencia disponible, la formulación matemática, la trazabilidad de parámetros y las decisiones explícitamente adoptadas para la nueva arquitectura.
+
+El material histórico se conserva para poder explicar cómo se llegó a dicha arquitectura.
+
+Esta separación es particularmente importante en un proceso de recuperación de un proyecto previo.
+
+\subsection{Relación con la arquitectura de control}
+
+La implementación de referencia también permite observar la frontera entre la planta y el control.
+
+Conceptualmente:
+
+\begin{equation}
+\text{referencia de velocidad}
+\rightarrow
+\text{FOC}
+\rightarrow
+\text{accionamiento}
+\rightarrow
+\text{PMSM}.
+\end{equation}
+
+La planta genera:
+
+\begin{equation}
+\text{PMSM}
+\rightarrow
+\{i_a,i_b,i_c,i_d,i_q,\omega_m,\theta_m,T_e\}.
+\end{equation}
+
+Estas variables pueden regresar mediante las interfaces definidas hacia el controlador.
+
+La existencia de una implementación de control dentro del modelo histórico no convierte al controlador en parte de la definición física de la PMSM.
+
+Esta separación será necesaria posteriormente para evaluar FOC, MPC, ANFIS y otras capas inteligentes utilizando una planta común.
+
+\subsection{Preparación para la arquitectura híbrida}
+
+El papel de MATLAB/Simscape adquiere especial relevancia cuando se considera la arquitectura futura de control híbrido.
+
+El objetivo no consiste en construir una planta diferente para cada estrategia de control.
+
+La planta debe constituir una referencia común:
+
+\begin{equation}
+\text{PMSM}
+\rightarrow
+\left\{
+\begin{array}{c}
+\text{FOC}\\
+\text{MPC}\\
+\text{ANFIS}\\
+\text{TinyML}\\
+\text{arquitectura híbrida}
+\end{array}
+\right.
+\end{equation}
+
+Las diferentes estrategias pueden compartir la misma representación física siempre que respeten los contratos de interfaz.
+
+Esta condición es fundamental para que una comparación entre estrategias de control tenga significado.
+
+\subsection{Contratos de frontera}
+
+La arquitectura actual establece que los bloques deben comunicarse mediante contratos o buses de interfaz.
+
+La relación conceptual es:
+
+\begin{equation}
+\text{controlador}
+\rightarrow
+[\text{contrato}]
+\rightarrow
+\text{accionamiento/planta}.
+\end{equation}
+
+Y en la realimentación:
+
+\begin{equation}
+\text{planta}
+\rightarrow
+[\text{contrato}]
+\rightarrow
+\text{controlador}.
+\end{equation}
+
+Los buses actúan como mecanismos de transporte y traducción de esos contratos.
+
+La implementación histórica puede mostrar determinadas conexiones físicas entre bloques, pero la arquitectura futura se define a partir de contratos explícitos y no únicamente a partir de la topología de un archivo antiguo.
+
+\subsection{Valor de la referencia MATLAB/Simscape para el Digital Twin}
+
+La implementación de referencia forma parte de la genealogía del Digital Twin porque permite conectar la máquina física con una representación computacional ejecutable.
+
+Sin embargo, el Digital Twin no se define por el archivo de Simscape.
+
+Su construcción progresiva puede expresarse como:
+
+\begin{equation}
+\begin{aligned}
+\text{máquina física}
+&\rightarrow \text{documentación}
+\rightarrow \text{parámetros}
+\\
+&\rightarrow \text{modelo matemático}
+\rightarrow \text{referencia Simscape}
+\\
+&\rightarrow \text{datos}
+\rightarrow \text{modelos de mayor fidelidad}
+\rightarrow \text{Digital Twin}.
+\end{aligned}
+\end{equation}
+
+En esta perspectiva, MATLAB/Simscape constituye una etapa importante de implementación y validación, pero no representa el final de la evolución del modelo.
+
+\subsection{Limitaciones de la implementación de referencia}
+
+La implementación de referencia no debe utilizarse como evidencia suficiente para afirmar que todos los fenómenos de la máquina real están representados.
+
+Entre las limitaciones que deben mantenerse visibles se encuentran:
+
+\begin{itemize}
+    \item la parametrización puede corresponder a un nivel concentrado;
+    \item algunos parámetros recuperados pertenecen a configuraciones históricas;
+    \item no toda la información del modelo histórico tiene procedencia documental confirmada;
+    \item el comportamiento electromagnético detallado requiere mapas o modelos de mayor fidelidad;
+    \item la dependencia térmica completa no está representada en el modelo M4;
+    \item la fricción y otras pérdidas requieren información adicional;
+    \item la equivalencia exacta entre determinadas variantes documentales debe verificarse.
+\end{itemize}
+
+Estas limitaciones no invalidan el uso de la referencia. Determinan qué afirmaciones pueden realizarse a partir de ella.
+
+\subsection{Función dentro de la estrategia de migración}
+
+La implementación MATLAB/Simscape cumple cuatro funciones principales dentro del proceso de migración:
+
+\begin{enumerate}
+    \item conservar una referencia computacional del comportamiento de la planta;
+    \item aportar evidencia para reconstruir relaciones y condiciones;
+    \item permitir comparaciones independientes con la implementación Python;
+    \item conservar la genealogía de la arquitectura anterior.
+\end{enumerate}
+
+Python asume posteriormente una función diferente: hacer explícitas las ecuaciones, organizar los datos, ejecutar experimentos reproducibles y preparar la evolución hacia modelos de mayor fidelidad.
+
+Por tanto:
+
+\begin{equation}
+\text{MATLAB/Simscape}
+\rightarrow
+\text{referencia y evidencia},
+\end{equation}
+
+mientras:
+
+\begin{equation}
+\text{Python}
+\rightarrow
+\text{reconstrucción y evolución reproducible}.
+\end{equation}
+
+Ambas funciones son complementarias.
+
+\subsection{Cierre del capítulo}
+
+La implementación MATLAB/Simscape constituye una etapa fundamental en la genealogía computacional de la planta PMSM. Su valor principal reside en proporcionar una referencia ejecutable, una fuente de evidencia y un punto de comparación para la reconstrucción posterior.
+
+La implementación debe interpretarse siempre dentro de la trazabilidad de la máquina Siemens 1FT7087 y de la formulación matemática establecida previamente. Los parámetros de la planta deben conservar su propia procedencia, mientras que las condiciones del accionamiento, los parámetros del controlador y las condiciones experimentales deben mantenerse separados.
+
+El archivo \texttt{skeleton.slx} se conserva como referencia histórica y temporal de arquitectura y trazabilidad. Su información resulta útil para comprender la evolución del proyecto, pero no se adopta como especificación permanente.
+
+Esta separación permite pasar de una implementación histórica a una reconstrucción reproducible sin perder la evidencia acumulada.
+
+El siguiente paso consiste en documentar la reconstrucción Python, donde las ecuaciones y decisiones de modelado dejan de depender de la estructura interna de los bloques de Simscape y pasan a constituir una implementación explícita, versionable y reproducible de la planta.

@@ -1,0 +1,68 @@
+\section{Control FOC}
+
+El FOC constituye el controlador principal del PMSM. Su función es transformar las corrientes trifásicas al marco síncrono $dq$, regular los componentes de corriente mediante lazos PI y generar las referencias de tensión que permiten actuar sobre la planta.
+
+\subsection{Flujo algorítmico}
+\begin{equation}
+(i_a,i_b,i_c)\rightarrow\mathrm{Clarke}\rightarrow(i_\alpha,i_\beta)\rightarrow\mathrm{Park}\rightarrow(i_d,i_q)\rightarrow\mathrm{PI}\rightarrow(v_d,v_q)\rightarrow\mathrm{Park}^{-1}\rightarrow\mathrm{M3/M2}\rightarrow\mathrm{PMSM}.
+\end{equation}
+
+\subsection{Lazo de velocidad}
+\begin{equation}
+e_\omega=\omega^*-\omega_m,
+\end{equation}
+\begin{equation}
+i_{q,raw}^*=K_{p\omega}e_\omega+K_{i\omega}\int e_\omega\,dt,
+\end{equation}
+\begin{equation}
+i_q^*=\operatorname{sat}(i_{q,raw}^*,i_{q,min},i_{q,max}).
+\end{equation}
+
+La actualización del lazo de velocidad se realiza cada cuatro pasos del lazo de corriente: $T_{s,current}=50\,\mu s$ y $T_{s,speed}=200\,\mu s$.
+
+\subsection{Lazo de corriente}
+Las referencias son $i_d^*=0$ e $i_q^*$ proveniente del lazo de velocidad:
+\begin{align}
+e_d &= i_d^*-i_d,\\
+e_q &= i_q^*-i_q.
+\end{align}
+
+Los controles antes de saturación son:
+\begin{align}
+v_{d,raw} &= K_{pd}e_d+K_{id}\int e_d\,dt+v_{d,dec},\\
+v_{q,raw} &= K_{pq}e_q+K_{iq}\int e_q\,dt+v_{q,dec}.
+\end{align}
+
+\subsection{Desacoplamiento}
+\begin{align}
+v_{d,dec}&=-\omega_eL_qi_q,\\
+v_{q,dec}&=\omega_e(L_di_d+\lambda_m).
+\end{align}
+
+\subsection{Saturación y anti-windup}
+\begin{equation}
+V_{max}=0.95\frac{V_{DC}}{\sqrt{3}}.
+\end{equation}
+La implementación reconstruida revierte el incremento integral correspondiente cuando se detecta saturación.
+
+\subsection{Parametrización recuperada del FOC/M6}
+\begin{table}[H]
+\centering
+\caption{Parámetros del controlador FOC reconstruido.}
+\begin{tabular}{lll}
+\toprule
+Parámetro & Valor & Capa \\
+\midrule
+$L_d,L_q$ & \SI{0.0012}{H} & FOC \\
+$\lambda_m$ & \SI{0.1100}{Wb} & Referencia histórica M6 \\
+$p$ & 4 & FOC \\
+$K_{p\omega}$ & 5.2804 & FOC \\
+$K_{i\omega}$ & 1.2693 & FOC \\
+$K_{pd},K_{pq}$ & 15.0796 & FOC \\
+$K_{id},K_{iq}$ & 628.3185 & FOC \\
+$i_{q,max/min}$ & $\pm112.43$ A & FOC \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La diferencia entre $\lambda_m=0.107245$ Wb en la planta y $\lambda_m=0.1100$ Wb en el FOC recuperado se mantiene explícita hasta cerrar su procedencia.

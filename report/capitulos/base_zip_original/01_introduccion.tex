@@ -1,0 +1,23 @@
+\section{Introducción}
+
+El motor síncrono de imanes permanentes (PMSM) constituye una planta electromecánica en la que las dinámicas eléctricas, electromagnéticas y mecánicas interactúan a diferentes escalas de tiempo. Esta característica hace necesario separar con claridad el modelo de la planta, las transformaciones de variables, el controlador y las capas de supervisión que posteriormente puedan aportar capacidad de adaptación o predicción.
+
+El objetivo del proyecto es desarrollar una arquitectura reproducible de control para un PMSM en la que el FOC constituya el controlador principal y una capa inteligente permita estudiar y tratar las no linealidades del sistema. Las líneas de desarrollo consideradas son ANFIS, MPC y estrategias Tiny/TinyML, cuya integración todavía se encuentra en desarrollo.
+
+El modelo histórico \texttt{skeleton.slx} se utiliza como referencia temporal de arquitectura y trazabilidad. Su análisis sirve para identificar módulos, señales y relaciones funcionales, pero no se adopta como la especificación permanente del sistema final. La especificación del sistema se consolida progresivamente en el desarrollo Python y en sus contratos de frontera.
+
+\section{Objetivos y alcance}
+
+\subsection{Objetivo general}
+Desarrollar y documentar una arquitectura reproducible de control para un PMSM basada en FOC como controlador principal y preparada para incorporar ANFIS, MPC y Tiny/TinyML como capa inteligente de predicción, adaptación y optimización.
+
+\subsection{Objetivos específicos}
+\begin{enumerate}[label=\arabic*.]
+  \item Formalizar el modelo de la planta PMSM y separar sus parámetros de los parámetros del controlador.
+  \item Documentar las transformaciones Clarke y Park y las convenciones de ángulo empleadas.
+  \item Consolidar la reconstrucción funcional de la cadena M3--M4--M6 en Python.
+  \item Documentar detalladamente el algoritmo FOC y su papel como controlador principal.
+  \item Establecer contratos de frontera entre las capas de planta, control e inteligencia.
+  \item Desarrollar y validar primero en Python las estrategias inteligentes.
+  \item Transferir posteriormente a Simulink/Simscape las soluciones ya verificadas para su implementación e integración.
+\end{enumerate}

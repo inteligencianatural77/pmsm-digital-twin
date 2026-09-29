@@ -1,0 +1,28 @@
+\section{Planta PMSM}
+
+La planta PMSM constituye el elemento físico central del sistema. En este proyecto sus parámetros se mantienen separados de cualquier límite o ganancia definido posteriormente por el FOC.
+
+\subsection{Parámetros de planta actualmente establecidos}
+
+\begin{table}[H]
+\centering
+\caption{Parámetros de planta PMSM actualmente establecidos.}
+\label{tab:plant_params}
+\begin{tabular}{lll}
+\toprule
+Parámetro & Valor & Estado/procedencia \\
+\midrule
+$R_s$ & \SI{0.05}{\ohm} & Confirmado M4 \\
+$L_d$ & \SI{0.0012}{H} & Confirmado M4 \\
+$L_q$ & \SI{0.0012}{H} & Confirmado M4 \\
+$\lambda_m$ & \SI{0.107245}{Wb} & Confirmado; procedencia por verificar \\
+$N$ & 6 & Parámetro de bloque histórico \\
+$p$ & 4 & Número de pares de polos \\
+$J$ & \SI{0.00416}{kg.m^2} & Confirmado M4 \\
+$B$ & Pendiente & No confirmado \\
+$T_{fric}$ & Pendiente & No confirmado \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Los valores de $B$ y $T_{fric}$ no se incorporan como parámetros confirmados mientras permanezcan pendientes de verificación.

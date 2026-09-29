@@ -1,0 +1,1500 @@
+\section{Reconstrucción reproducible en Python}
+
+\subsection{Propósito de la reconstrucción}
+
+La reconstrucción en Python constituye la siguiente etapa de la genealogía computacional de la planta PMSM. Después de establecer la máquina de referencia, su parametrización, la formulación matemática y la implementación MATLAB/Simscape, se desarrolla una representación explícita, versionable y reproducible mediante código Python.
+
+El objetivo no es reproducir literalmente la estructura interna de MATLAB/Simscape. La finalidad es expresar de manera explícita las relaciones físicas que pueden justificarse mediante la documentación, la formulación matemática y la evidencia recuperada del proyecto.
+
+La reconstrucción puede representarse como:
+
+\begin{equation}
+\text{referencia MATLAB/Simscape}
+\rightarrow
+\text{formulación física}
+\rightarrow
+\text{Python explícito}.
+\end{equation}
+
+Esta estrategia permite separar la evidencia histórica de la implementación actualmente mantenida.
+
+La implementación Python constituye además la semilla computacional sobre la cual se desarrollarán posteriormente los mapas electromagnéticos, los modelos de mayor fidelidad y las diferentes estrategias de control que utilizarán la planta como plataforma común.
+
+\subsection{Motivación de la migración a Python}
+
+La utilización de Python proporciona características especialmente útiles para una reconstrucción reproducible:
+
+\begin{itemize}
+    \item código fuente versionable;
+    \item parametrización explícita;
+    \item experimentos automatizables;
+    \item generación reproducible de datos;
+    \item integración con herramientas de análisis numérico;
+    \item construcción sistemática de mapas;
+    \item generación automática de figuras y tablas;
+    \item trazabilidad entre código, parámetros y resultados.
+\end{itemize}
+
+La migración permite, además, desacoplar la definición de la planta de una determinada herramienta gráfica.
+
+La planta puede ejecutarse desde scripts y módulos Python, facilitando que diferentes experimentos utilicen exactamente la misma implementación base.
+
+La decisión de utilizar Python no implica eliminar MATLAB/Simscape. Ambas plataformas cumplen funciones diferentes dentro de la arquitectura del proyecto.
+
+\subsection{Relación entre referencia y reconstrucción}
+
+La relación entre ambas implementaciones debe entenderse en términos de evidencia y formulación, no de copia estructural.
+
+La referencia MATLAB/Simscape aporta información sobre:
+
+\begin{itemize}
+    \item representación física;
+    \item conexiones entre dominios;
+    \item condiciones de operación;
+    \item variables observables;
+    \item arquitectura histórica;
+    \item resultados de simulación.
+\end{itemize}
+
+La reconstrucción Python convierte la información físicamente justificable en una implementación explícita.
+
+Por tanto:
+
+\begin{equation}
+\text{Simscape}
+\neq
+\text{código fuente de Python}.
+\end{equation}
+
+La relación correcta es:
+
+\begin{equation}
+\text{evidencia}
++
+\text{formulación}
++
+\text{parametrización}
+\rightarrow
+\text{implementación Python}.
+\end{equation}
+
+Esta distinción evita atribuir a Python comportamientos que todavía no hayan sido demostrados o trazados.
+
+\subsection{Arquitectura del código}
+
+La implementación activa se organiza alrededor del paquete:
+
+\begin{equation}
+\texttt{pmsm\_hybrid\_control}.
+\end{equation}
+
+Dentro de esta estructura, la planta se separa de las capas de control.
+
+La cadena principal de la planta es:
+
+\begin{equation}
+\texttt{parameters.py}
+\rightarrow
+\texttt{PMSMParameters}
+\rightarrow
+\texttt{PMSMBase}.
+\end{equation}
+
+Las interfaces de entrada y salida se representan mediante:
+
+\begin{equation}
+\texttt{PlantInput}
+\rightarrow
+\texttt{PMSMBase}
+\rightarrow
+\texttt{PlantOutput}.
+\end{equation}
+
+Esta separación permite que la planta pueda ser utilizada por diferentes experimentos sin incorporar directamente la lógica del controlador.
+
+\subsection{Fuente de parámetros}
+
+El módulo \texttt{parameters.py} establece la fuente de verdad para la parametrización M4 utilizada por la planta actual.
+
+El propio módulo documenta que la fuente principal es:
+
+\begin{equation}
+\texttt{01\_M4\_HARD\_DATA.md}.
+\end{equation}
+
+Los parámetros se acompañan de información de trazabilidad.
+
+La estructura utilizada permite asociar a un valor:
+
+\begin{equation}
+\{
+\text{valor},
+\text{estado},
+\text{fuente},
+\text{unidad},
+\text{nota}
+\}.
+\end{equation}
+
+Esta representación evita que un número aislado pierda su procedencia al ser utilizado en diferentes partes del proyecto.
+
+\subsection{Estados de trazabilidad}
+
+La implementación utiliza estados explícitos para distinguir el nivel de evidencia de los parámetros.
+
+Entre ellos se encuentran:
+
+\begin{itemize}
+    \item \texttt{CONFIRMED};
+    \item \texttt{PROPOSED};
+    \item \texttt{PENDING\_VERIFICATION}.
+\end{itemize}
+
+Estos estados no representan niveles de calidad numérica, sino estados de conocimiento y procedencia.
+
+Un valor confirmado puede utilizarse como parte de la parametrización establecida.
+
+Un valor propuesto representa una decisión de modelado que todavía puede evolucionar.
+
+Un valor pendiente no debe incorporarse silenciosamente como si fuera un parámetro físicamente confirmado.
+
+\subsection{Parámetros M4 de la planta}
+
+La parametrización concentrada actualmente utilizada contiene:
+
+\begin{equation}
+R_s=0.05\,\Omega,
+\end{equation}
+
+\begin{equation}
+L_d=1.2\times10^{-3}\,\mathrm{H},
+\end{equation}
+
+\begin{equation}
+L_q=1.2\times10^{-3}\,\mathrm{H},
+\end{equation}
+
+\begin{equation}
+\lambda_m=0.107245\,\mathrm{Wb},
+\end{equation}
+
+\begin{equation}
+p=4,
+\end{equation}
+
+y:
+
+\begin{equation}
+J=0.00416\,\mathrm{kg\,m^2}.
+\end{equation}
+
+Estos valores constituyen la parametrización M4 actualmente adoptada.
+
+La igualdad:
+
+\begin{equation}
+L_d=L_q
+\end{equation}
+
+corresponde a la representación concentrada utilizada actualmente. No debe interpretarse como una afirmación universal de que la máquina real carezca de cualquier anisotropía.
+
+\subsection{Flujo magnético permanente}
+
+El valor utilizado actualmente para el enlace de flujo permanente es:
+
+\begin{equation}
+\lambda_m=0.107245\,\mathrm{Wb}.
+\end{equation}
+
+Este valor se obtuvo a partir de la constante de par documentada y del número de pares de polos:
+
+\begin{equation}
+\lambda_m=
+\frac{k_T}
+{(3/2)\sqrt{2}\,p}.
+\end{equation}
+
+Utilizando:
+
+\begin{equation}
+k_T=0.91\,\mathrm{N\,m/A}
+\end{equation}
+
+y:
+
+\begin{equation}
+p=4,
+\end{equation}
+
+se obtiene aproximadamente el valor utilizado por M4.
+
+La procedencia numérica y la procedencia documental deben mantenerse diferenciadas. El valor se encuentra incorporado a la parametrización M4, mientras que su trazabilidad documental detallada permanece identificada para futura verificación.
+
+\subsection{Separación de parámetros históricos}
+
+Durante la reconstrucción se encontraron valores pertenecientes a implementaciones anteriores.
+
+Un caso relevante es:
+
+\begin{equation}
+\lambda_m=0.1100\,\mathrm{Wb}.
+\end{equation}
+
+Este valor aparece en configuraciones históricas del FOC reconstruido.
+
+No se utiliza como sustituto del valor M4 de la planta.
+
+La separación se expresa como:
+
+\begin{equation}
+\lambda_{m,\mathrm{plant}}
+\neq
+\lambda_{m,\mathrm{FOC,historical}}.
+\end{equation}
+
+La diferencia no se corrige silenciosamente porque forma parte de la trazabilidad del proceso de recuperación.
+
+La misma regla se aplica a otros parámetros históricos.
+
+\subsection{Parámetros mecánicos}
+
+La inercia actualmente utilizada es:
+
+\begin{equation}
+J=0.00416\,\mathrm{kg\,m^2}.
+\end{equation}
+
+Este valor corresponde a la configuración con freno considerada en la parametrización M4.
+
+La documentación del fabricante también proporciona una inercia de aproximadamente:
+
+\begin{equation}
+J=0.00274\,\mathrm{kg\,m^2}
+\end{equation}
+
+para la configuración sin freno.
+
+La selección del valor M4 debe permanecer documentada porque la inercia depende de la configuración mecánica considerada.
+
+\subsection{Parámetros todavía pendientes}
+
+La reconstrucción no incorpora como parámetros activos de M4 determinados valores históricos de fricción.
+
+En particular:
+
+\begin{equation}
+B
+\end{equation}
+
+y:
+
+\begin{equation}
+T_{\mathrm{fric}}
+\end{equation}
+
+permanecen pendientes de verificación.
+
+Valores históricos asociados a CloudE no se trasladan automáticamente a la planta actual.
+
+Esta decisión permite mantener una separación clara entre:
+
+\begin{equation}
+\text{parámetro confirmado}
+\end{equation}
+
+y:
+
+\begin{equation}
+\text{valor histórico recuperado}.
+\end{equation}
+
+\subsection{Clase \texttt{PMSMParameters}}
+
+La clase \texttt{PMSMParameters} concentra los parámetros necesarios para ejecutar la planta M4.
+
+Su función es evitar que las ecuaciones dependan de valores dispersos en diferentes módulos.
+
+Conceptualmente:
+
+\begin{equation}
+\Theta=
+\{
+R_s,
+L_d,
+L_q,
+\lambda_m,
+p,
+J
+\}.
+\end{equation}
+
+El objeto de parámetros representa este conjunto como una unidad.
+
+La planta recibe así una configuración explícita y verificable.
+
+Esta estructura facilita la creación de diferentes configuraciones futuras sin modificar las ecuaciones fundamentales.
+
+\subsection{Validación de parámetros}
+
+La implementación incorpora validaciones básicas antes de ejecutar la planta.
+
+Entre las condiciones comprobadas se encuentran:
+
+\begin{itemize}
+    \item resistencia positiva;
+    \item inductancias positivas;
+    \item flujo permanente positivo;
+    \item inercia positiva;
+    \item número de pares de polos consistente;
+    \item valores numéricos válidos.
+\end{itemize}
+
+Estas comprobaciones no constituyen una validación física completa de la máquina.
+
+Su finalidad es impedir que errores elementales de parametrización pasen inadvertidos durante la ejecución.
+
+\subsection{Estados de la planta}
+
+La clase \texttt{PMSMBase} utiliza cuatro estados principales:
+
+\begin{equation}
+x=
+\begin{bmatrix}
+i_d&
+i_q&
+\omega_m&
+\theta_m
+\end{bmatrix}^{T}.
+\end{equation}
+
+Los dos primeros representan las corrientes en el marco $dq$.
+
+El tercero representa la velocidad mecánica del rotor.
+
+El cuarto representa la posición mecánica.
+
+Estos estados corresponden directamente a la formulación matemática desarrollada anteriormente.
+
+\subsection{Entradas de la planta}
+
+La interfaz \texttt{PlantInput} representa las magnitudes que la implementación actual utiliza para avanzar la planta.
+
+Incluye:
+
+\begin{equation}
+v_a,\quad v_b,\quad v_c,
+\end{equation}
+
+el par de carga:
+
+\begin{equation}
+T_{\mathrm{load}},
+\end{equation}
+
+y la posición mecánica utilizada por la implementación:
+
+\begin{equation}
+\theta_m.
+\end{equation}
+
+La presencia de $\theta_m$ como entrada debe entenderse como una característica de la implementación actual y no como una afirmación de que la posición del rotor sea una entrada física independiente de la máquina.
+
+La consolidación futura de esta interfaz deberá distinguir de forma más estricta entre estado interno y señal externa de posición.
+
+\subsection{Salidas de la planta}
+
+La interfaz \texttt{PlantOutput} expone:
+
+\begin{equation}
+i_a,\quad i_b,\quad i_c,
+\end{equation}
+
+\begin{equation}
+i_d,\quad i_q,
+\end{equation}
+
+\begin{equation}
+\omega_m,\quad \theta_m,
+\end{equation}
+
+y:
+
+\begin{equation}
+T_e.
+\end{equation}
+
+Esta interfaz permite que la misma planta sea utilizada por diferentes capas de control y análisis.
+
+La salida no contiene directamente parámetros del controlador.
+
+La separación permite utilizar la planta como componente independiente.
+
+\subsection{Transformación de variables trifásicas}
+
+La implementación recibe variables trifásicas y las transforma al marco de referencia utilizado por las ecuaciones.
+
+La secuencia conceptual es:
+
+\begin{equation}
+abc
+\rightarrow
+\alpha\beta
+\rightarrow
+dq.
+\end{equation}
+
+La implementación actual utiliza una transformación de Clarke basada en:
+
+\begin{equation}
+i_\alpha=i_a,
+\end{equation}
+
+y:
+
+\begin{equation}
+i_\beta=
+\frac{i_b-i_c}{\sqrt{3}}.
+\end{equation}
+
+Posteriormente se aplica la transformación de Park utilizando la posición eléctrica.
+
+La transformación inversa permite reconstruir las variables trifásicas de salida.
+
+\subsection{Posición eléctrica}
+
+La posición eléctrica se obtiene mediante:
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+De forma equivalente, la velocidad eléctrica es:
+
+\begin{equation}
+\omega_e=p\omega_m.
+\end{equation}
+
+Esta relación constituye uno de los principales acoplamientos entre los dominios mecánico y eléctrico.
+
+El número utilizado actualmente es:
+
+\begin{equation}
+p=4,
+\end{equation}
+
+correspondiente a ocho polos físicos.
+
+\subsection{Ecuaciones eléctricas implementadas}
+
+La dinámica eléctrica utilizada por \texttt{PMSMBase} es:
+
+\begin{equation}
+\frac{di_d}{dt}
+=
+\frac{
+v_d-R_si_d+\omega_eL_qi_q
+}
+{L_d},
+\end{equation}
+
+y:
+
+\begin{equation}
+\frac{di_q}{dt}
+=
+\frac{
+v_q-R_si_q-\omega_e(L_di_d+\lambda_m)
+}
+{L_q}.
+\end{equation}
+
+Estas ecuaciones corresponden directamente a la formulación matemática establecida para el modelo concentrado.
+
+La implementación no introduce en esta etapa dependencias angulares de inductancia ni mapas electromagnéticos.
+
+\subsection{Par electromagnético}
+
+El par electromagnético utilizado como relación de referencia es:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p
+\left[
+\lambda_mi_q+
+(L_d-L_q)i_di_q
+\right].
+\end{equation}
+
+Dado que el modelo M4 utiliza:
+
+\begin{equation}
+L_d=L_q,
+\end{equation}
+
+la expresión se reduce a:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p\lambda_mi_q.
+\end{equation}
+
+Esta ecuación constituye la relación de par utilizada por la implementación M4. No se presenta como una reproducción literal de una ley interna de Simscape.
+
+\subsection{Dinámica mecánica}
+
+La velocidad mecánica se integra mediante:
+
+\begin{equation}
+\frac{d\omega_m}{dt}
+=
+\frac{T_e-T_{\mathrm{load}}}{J}.
+\end{equation}
+
+La posición se obtiene mediante:
+
+\begin{equation}
+\frac{d\theta_m}{dt}
+=
+\omega_m.
+\end{equation}
+
+El modelo actual no introduce explícitamente términos separados de fricción viscosa o par de fricción porque dichos parámetros permanecen pendientes de verificación.
+
+Por tanto, $T_{\mathrm{load}}$ representa el par resistente externo utilizado en el experimento.
+
+\subsection{Integración numérica}
+
+La implementación actual utiliza integración explícita de Euler.
+
+Para un estado genérico:
+
+\begin{equation}
+x_{k+1}
+=
+x_k+\Delta t\,\dot{x}_k.
+\end{equation}
+
+Aplicado a las corrientes:
+
+\begin{equation}
+i_{d,k+1}
+=
+i_{d,k}
++
+\Delta t
+\frac{di_d}{dt},
+\end{equation}
+
+\begin{equation}
+i_{q,k+1}
+=
+i_{q,k}
++
+\Delta t
+\frac{di_q}{dt}.
+\end{equation}
+
+Para la velocidad:
+
+\begin{equation}
+\omega_{m,k+1}
+=
+\omega_{m,k}
++
+\Delta t
+\frac{T_e-T_{\mathrm{load}}}{J}.
+\end{equation}
+
+La posición se actualiza mediante:
+
+\begin{equation}
+\theta_{m,k+1}
+=
+\theta_{m,k}
++
+\Delta t\,\omega_{m,k}.
+\end{equation}
+
+El método se mantiene explícito porque facilita la inspección del comportamiento numérico y la reproducibilidad del experimento.
+
+\subsection{Paso temporal de referencia}
+
+El experimento base utiliza:
+
+\begin{equation}
+\Delta t=50\,\mu\mathrm{s}.
+\end{equation}
+
+Esto corresponde a una frecuencia de integración de:
+
+\begin{equation}
+f_s=20\,\mathrm{kHz}.
+\end{equation}
+
+El paso temporal constituye una condición numérica del experimento y no un parámetro físico de la máquina.
+
+Esta distinción permite cambiar el integrador o realizar estudios de convergencia sin alterar la parametrización física.
+
+\subsection{Condiciones iniciales}
+
+La implementación base inicializa las variables de estado en cero.
+
+Conceptualmente:
+
+\begin{equation}
+i_d(0)=0,
+\end{equation}
+
+\begin{equation}
+i_q(0)=0,
+\end{equation}
+
+\begin{equation}
+\omega_m(0)=0,
+\end{equation}
+
+y:
+
+\begin{equation}
+\theta_m(0)=0.
+\end{equation}
+
+Estas condiciones corresponden al experimento de arranque utilizado como referencia.
+
+Una condición inicial diferente constituye una configuración experimental diferente y debe quedar registrada junto con los resultados.
+
+\subsection{Peculiaridad actual de \texorpdfstring{$\theta_m$}{theta m}}
+
+La implementación actual presenta una característica que debe conservarse explícitamente en la trazabilidad.
+
+\texttt{PlantInput} contiene $\theta_m$, mientras que \texttt{PMSMBase} también mantiene una variable interna para la posición.
+
+Durante el paso de simulación, la posición recibida se utiliza para calcular la posición eléctrica y se asigna al estado interno antes de la actualización dinámica.
+
+Esto implica que actualmente existe una mezcla entre:
+
+\begin{equation}
+\text{posición externa}
+\end{equation}
+
+y:
+
+\begin{equation}
+\text{posición integrada internamente}.
+\end{equation}
+
+La condición no se modifica silenciosamente porque forma parte del estado actual del código.
+
+Debe considerarse una tarea de consolidación futura de la interfaz de la planta.
+
+\subsection{Ausencia de un solver FEM}
+
+La implementación \texttt{PMSMBase} no constituye un solver de elementos finitos.
+
+Su nivel de fidelidad corresponde a un modelo concentrado basado en parámetros.
+
+La estructura es:
+
+\begin{equation}
+\text{PMSMBase}
+=
+\text{modelo matemático parametrizado}.
+\end{equation}
+
+No debe afirmarse que la implementación actual reproduce por sí misma la distribución espacial del campo magnético.
+
+La dependencia angular detallada, las saturaciones locales y los armónicos espaciales requieren una representación de mayor fidelidad.
+
+\subsection{Ausencia de mapas electromagnéticos activos}
+
+El repositorio contiene módulos destinados a una futura representación mediante mapas.
+
+Sin embargo, la configuración M4 activa utiliza relaciones analíticas.
+
+El flujo de referencia es:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m,
+\end{equation}
+
+\begin{equation}
+\psi_q=L_qi_q.
+\end{equation}
+
+Las tablas recuperadas de etapas anteriores permanecen separadas y marcadas como información recuperada pendiente de verificación semántica.
+
+Por tanto, no se consideran automáticamente mapas validados de la máquina.
+
+\subsection{Evolución hacia mapas}
+
+Cuando se disponga de datos electromagnéticos suficientemente trazables, las relaciones analíticas podrán sustituirse o complementarse mediante funciones dependientes del punto de operación.
+
+Una representación futura puede adoptar la forma:
+
+\begin{equation}
+\psi_d=
+f(i_d,i_q,\theta_e),
+\end{equation}
+
+\begin{equation}
+\psi_q=
+g(i_d,i_q,\theta_e).
+\end{equation}
+
+De forma correspondiente, el par podrá evaluarse directamente desde el estado electromagnético.
+
+La arquitectura actual permite introducir esta evolución sin redefinir la identidad de la planta.
+
+\subsection{Evolución del nivel de fidelidad}
+
+La reconstrucción Python se organiza alrededor de una evolución progresiva:
+
+\begin{equation}
+\mathrm{M4}
+\rightarrow
+\mathrm{mapas}
+\rightarrow
+\mathrm{modelo\ no\ lineal}
+\rightarrow
+\mathrm{FEM/ROM}
+\rightarrow
+\mathrm{Digital\ Twin}.
+\end{equation}
+
+Cada etapa debe incorporar nueva evidencia.
+
+La etapa M4 proporciona una semilla reproducible.
+
+Los mapas permitirán incorporar dependencias no representadas por el modelo concentrado.
+
+El modelo no lineal podrá incorporar saturación y dependencia angular.
+
+FEM y ROM podrán proporcionar información espacial o modelos reducidos derivados de representaciones de mayor fidelidad.
+
+\subsection{Separación entre planta y controlador}
+
+La reconstrucción Python mantiene separada la planta de las estrategias de control.
+
+La planta responde a entradas eléctricas y mecánicas y produce variables físicas.
+
+El FOC utiliza dichas variables para generar las referencias necesarias para el accionamiento.
+
+La relación conceptual es:
+
+\begin{equation}
+\text{FOC}
+\rightarrow
+\text{accionamiento}
+\rightarrow
+\text{PMSMBase}.
+\end{equation}
+
+Y en realimentación:
+
+\begin{equation}
+\text{PMSMBase}
+\rightarrow
+\text{mediciones}
+\rightarrow
+\text{FOC}.
+\end{equation}
+
+Esta separación permite utilizar posteriormente la misma planta con otras estrategias.
+
+\subsection{Separación de \texttt{foc} y \texttt{foc\_reconstructed}}
+
+El repositorio contiene dos estructuras relacionadas con FOC.
+
+El directorio:
+
+\begin{equation}
+\texttt{foc/}
+\end{equation}
+
+representa actualmente una estructura de interfaz o esqueleto pendiente de consolidación.
+
+El directorio:
+
+\begin{equation}
+\texttt{foc\_reconstructed/}
+\end{equation}
+
+contiene el FOC funcional utilizado por los experimentos de integración actuales.
+
+Esta distinción evita presentar una interfaz placeholder como si fuera el controlador funcional utilizado en los resultados.
+
+\subsection{Parámetros del FOC reconstruido}
+
+El FOC reconstruido utiliza parámetros que deben mantenerse separados de la planta.
+
+Entre los valores históricos recuperados se encuentran:
+
+\begin{equation}
+K_{p,id}=K_{p,iq}=15.0796,
+\end{equation}
+
+\begin{equation}
+K_{i,id}=K_{i,iq}=628.3185,
+\end{equation}
+
+\begin{equation}
+K_{p,\omega}=5.2804,
+\end{equation}
+
+y:
+
+\begin{equation}
+K_{i,\omega}=1.2693.
+\end{equation}
+
+Estos valores describen una configuración particular del controlador.
+
+No deben incorporarse a la clase de parámetros físicos de la PMSM.
+
+\subsection{Desacoplamiento del FOC}
+
+El FOC reconstruido incorpora términos de desacoplamiento basados en la formulación $dq$.
+
+Los términos utilizados como referencia son:
+
+\begin{equation}
+v_{d,\mathrm{dec}}
+=
+-\omega_eL_qi_q,
+\end{equation}
+
+y:
+
+\begin{equation}
+v_{q,\mathrm{dec}}
+=
+\omega_e
+(L_di_d+\lambda_m).
+\end{equation}
+
+Estos términos pertenecen al controlador.
+
+Su existencia no modifica la ecuación física de la planta.
+
+Esta separación es fundamental para que la misma planta pueda recibir diferentes estrategias de control.
+
+\subsection{Límites del FOC}
+
+El FOC reconstruido también incorpora límites de corriente y tensión.
+
+El límite histórico de corriente $q$ utilizado en esta configuración es aproximadamente:
+
+\begin{equation}
+|i_q|\leq112.43\,\mathrm{A}.
+\end{equation}
+
+La tensión máxima se relaciona con el bus mediante:
+
+\begin{equation}
+V_{\max}
+=
+0.95
+\frac{V_{DC}}{\sqrt{3}}.
+\end{equation}
+
+Estos límites pertenecen a la estrategia de accionamiento y control.
+
+No deben interpretarse como sustitutos de los límites físicos documentados para la máquina.
+
+\subsection{Arquitectura del experimento B0}
+
+La primera referencia cerrada de la reconstrucción Python utiliza una cadena M3--M6--M4.
+
+La arquitectura es:
+
+\begin{equation}
+\omega^\ast
+\rightarrow
+\mathrm{FOC}
+\rightarrow
+(v_d^\ast,v_q^\ast)
+\rightarrow
+\mathrm{M3}
+\rightarrow
+(v_a,v_b,v_c)
+\rightarrow
+\mathrm{M4}.
+\end{equation}
+
+La realimentación devuelve:
+
+\begin{equation}
+\mathrm{M4}
+\rightarrow
+(i_a,i_b,i_c,\omega_m,\theta_m)
+\rightarrow
+\mathrm{FOC}.
+\end{equation}
+
+Esta configuración constituye un experimento de referencia de la planta reconstruida.
+
+\subsection{Condición de bus del experimento B0}
+
+El experimento B0 utiliza:
+
+\begin{equation}
+V_{DC}=540\,\mathrm{V}.
+\end{equation}
+
+Este valor forma parte de la configuración experimental del accionamiento.
+
+No se incorpora a \texttt{PMSMParameters} porque no constituye un parámetro intrínseco de la máquina.
+
+La misma planta puede utilizarse posteriormente con otra condición de bus si se mantienen documentadas las nuevas condiciones.
+
+\subsection{Referencia de velocidad de B0}
+
+La referencia de velocidad del experimento B0 es:
+
+\begin{equation}
+\omega^\ast=157.079633\,\mathrm{rad/s}.
+\end{equation}
+
+La carga cambia de cero a:
+
+\begin{equation}
+T_{\mathrm{load}}=23\,\mathrm{N\,m}
+\end{equation}
+
+a los $0.05\,\mathrm{s}$.
+
+El experimento tiene una duración total de:
+
+\begin{equation}
+t_{\mathrm{stop}}=20\,\mathrm{s}.
+\end{equation}
+
+Estas magnitudes constituyen la configuración del experimento y no deben confundirse con parámetros permanentes de la planta.
+
+\subsection{Resultado de referencia B0}
+
+La ejecución instrumentada del experimento B0 produjo, al final de la simulación, aproximadamente:
+
+\begin{equation}
+\omega_m=157.023729\,\mathrm{rad/s},
+\end{equation}
+
+con:
+
+\begin{equation}
+i_d=-1.122894\,\mathrm{A},
+\end{equation}
+
+\begin{equation}
+i_q=35.743789\,\mathrm{A},
+\end{equation}
+
+y:
+
+\begin{equation}
+T_e=23.000056\,\mathrm{N\,m}.
+\end{equation}
+
+La referencia de corriente $q$ al final fue aproximadamente:
+
+\begin{equation}
+i_q^\ast=35.761422\,\mathrm{A}.
+\end{equation}
+
+Estos valores pertenecen a la configuración experimental B0 y no constituyen nuevos parámetros de la máquina.
+
+\subsection{Métricas instrumentadas}
+
+Entre las métricas obtenidas en B0 se encuentran:
+
+\begin{equation}
+e_{\omega,\mathrm{final}}
+=
+0.055903785\,\mathrm{rad/s},
+\end{equation}
+
+y un error relativo final aproximado de:
+
+\begin{equation}
+e_{\omega,\mathrm{rel}}
+=
+0.035589454\%.
+\end{equation}
+
+El tiempo de establecimiento al 1\% registrado fue aproximadamente:
+
+\begin{equation}
+t_s=6.12635\,\mathrm{s}.
+\end{equation}
+
+También se registraron:
+
+\begin{equation}
+|i_q|_{\max}=120.2163\,\mathrm{A},
+\end{equation}
+
+\begin{equation}
+|i_d|_{\max}=3.39164\,\mathrm{A},
+\end{equation}
+
+y:
+
+\begin{equation}
+|V_{dq}|_{\max}=296.1843\,\mathrm{V}.
+\end{equation}
+
+La salida PWM permaneció dentro del intervalo:
+
+\begin{equation}
+0\leq D\leq1.
+\end{equation}
+
+Estas métricas constituyen resultados del experimento y no valores de parametrización física.
+
+\subsection{Trazabilidad de los resultados B0}
+
+La trayectoria experimental y las métricas fueron almacenadas con identificadores SHA-256.
+
+La trayectoria B0 presenta el hash:
+
+\begin{equation}
+\texttt{68c89e3d88ed51d18dd9fe07061d1185169aa95c7dd6a43846d1ba173b914278}.
+\end{equation}
+
+El archivo de métricas presenta:
+
+\begin{equation}
+\texttt{c0f4fc2e56430b912089660173a18db8808bd6a42512e1691c977a68b1a002ea}.
+\end{equation}
+
+Estos identificadores permiten asociar un conjunto de resultados con una versión concreta de los datos generados.
+
+El hash no demuestra por sí mismo la validez física del resultado. Su función es garantizar la identidad del artefacto almacenado.
+
+\subsection{Reproducibilidad experimental}
+
+La reproducibilidad requiere más que conservar un archivo de resultados.
+
+Debe ser posible reconstruir la configuración utilizada mediante:
+
+\begin{equation}
+C=
+\{
+\Theta,
+V_{DC},
+\omega^\ast,
+T_{\mathrm{load}},
+x_0,
+\Delta t,
+t_{\mathrm{stop}},
+\text{control}
+\}.
+\end{equation}
+
+La ejecución de un experimento debe registrar estos elementos junto con sus resultados.
+
+De esta forma, un resultado puede ser asociado a:
+
+\begin{equation}
+\text{código}
++
+\text{parámetros}
++
+\text{configuración}
++
+\text{datos}.
+\end{equation}
+
+Esta asociación constituye una de las principales ventajas de la reconstrucción reproducible.
+
+\subsection{Resultados y generación automática}
+
+Los resultados experimentales no deben incorporarse manualmente al código fuente del reporte.
+
+El flujo previsto es:
+
+\begin{equation}
+\text{experimento Python}
+\rightarrow
+\text{datos}
+\rightarrow
+\text{métricas}
+\rightarrow
+\text{generador}
+\rightarrow
+\text{LaTeX}.
+\end{equation}
+
+El reporte puede entonces incorporar valores y figuras generados automáticamente.
+
+Esta metodología reduce el riesgo de copiar manualmente resultados y permite repetir el proceso cuando cambien las condiciones experimentales.
+
+\subsection{Relación con el generador de datos LaTeX}
+
+El directorio del reporte contiene un generador destinado a producir archivos consumibles por LaTeX.
+
+El archivo:
+
+\begin{equation}
+\texttt{report/scripts/generate\_latex\_data.py}
+\end{equation}
+
+constituye la infraestructura para esta transferencia.
+
+El archivo generado:
+
+\begin{equation}
+\texttt{report/datos/resultados\_pmsm.tex}
+\end{equation}
+
+debe contener macros derivadas de resultados experimentales.
+
+La plantilla actual no debe interpretarse como una indicación de que todas las métricas del proyecto ya estén automatizadas.
+
+La infraestructura está preparada para incorporar el experimento de referencia conforme se consoliden sus resultados.
+
+\subsection{Reproducibilidad y control de versiones}
+
+La implementación Python forma parte del repositorio Git del proyecto.
+
+Esto permite asociar:
+
+\begin{equation}
+\text{código}
+\leftrightarrow
+\text{commit}
+\leftrightarrow
+\text{experimento}
+\leftrightarrow
+\text{resultado}.
+\end{equation}
+
+La identificación mediante Git complementa los hashes de los archivos experimentales.
+
+Una ejecución reproducible debe conservar suficiente información para determinar qué versión del código produjo un resultado determinado.
+
+\subsection{Separación entre implementación y evidencia histórica}
+
+La reconstrucción no incorpora automáticamente todos los scripts encontrados durante la recuperación.
+
+Los scripts diagnósticos antiguos, pruebas incompletas y artefactos históricos se consideran material de trazabilidad salvo que hayan sido seleccionados explícitamente como parte de la implementación activa.
+
+Esta regla evita contaminar el modelo actual con decisiones pertenecientes a experimentos anteriores.
+
+El mismo criterio se aplica al material ROM/FEM histórico.
+
+\subsection{Relación con los artefactos recuperados}
+
+El proceso de recuperación proporcionó diferentes fuentes de información.
+
+Estas pueden clasificarse como:
+
+\begin{itemize}
+    \item documentación de fabricante;
+    \item implementación MATLAB/Simscape;
+    \item archivos históricos;
+    \item parámetros M4;
+    \item código Python reconstruido;
+    \item resultados experimentales.
+\end{itemize}
+
+Cada fuente tiene una función diferente.
+
+La reconstrucción Python no intenta resolver automáticamente las contradicciones entre fuentes.
+
+Cuando existen discrepancias, estas deben conservarse y clasificarse hasta que exista evidencia suficiente para resolverlas.
+
+\subsection{Planta reproducible como semilla}
+
+El modelo M4 constituye una semilla computacional porque permite ejecutar experimentos sin depender de un modelo gráfico externo.
+
+La semilla contiene:
+
+\begin{equation}
+\{
+\text{parámetros},
+\text{ecuaciones},
+\text{estados},
+\text{entradas},
+\text{salidas},
+\text{integrador}
+\}.
+\end{equation}
+
+A partir de esta base pueden construirse experimentos más complejos sin modificar necesariamente la definición fundamental de la planta.
+
+Esto permite utilizar la misma planta como entorno común de evaluación.
+
+\subsection{Preparación para control avanzado}
+
+Una planta explícita y reproducible facilita el desarrollo de diferentes estrategias de control.
+
+La arquitectura prevista es:
+
+\begin{equation}
+\text{PMSM}
+\rightarrow
+\left\{
+\begin{array}{c}
+\mathrm{FOC}\\
+\mathrm{MPC}\\
+\mathrm{ANFIS}\\
+\mathrm{TinyML}
+\end{array}
+\right.
+\end{equation}
+
+La planta permanece común mientras las estrategias de control cambian.
+
+Esta condición permite que las diferencias observadas entre estrategias puedan asociarse a sus respectivas decisiones de control, siempre que se mantengan constantes las condiciones de la planta y del experimento.
+
+\subsection{FOC como controlador establecido}
+
+En la arquitectura actual, FOC constituye el controlador funcional utilizado para cerrar el primer experimento de referencia.
+
+Esto no significa que sea la única estrategia futura.
+
+Su función actual es proporcionar una primera cadena cerrada que permita verificar la interacción:
+
+\begin{equation}
+\text{referencia}
+\rightarrow
+\text{control}
+\rightarrow
+\text{planta}
+\rightarrow
+\text{realimentación}.
+\end{equation}
+
+Las estrategias MPC, ANFIS y TinyML se desarrollarán posteriormente sobre la misma base de planta y respetando las interfaces establecidas.
+
+\subsection{Relación con MPC}
+
+MPC requiere una representación de la planta que pueda utilizarse para predecir su evolución bajo diferentes acciones de control.
+
+La reconstrucción Python proporciona una base para esa tarea.
+
+Sin embargo, la existencia del modelo M4 no implica que el MPC ya esté implementado o validado.
+
+La relación actual es preparatoria:
+
+\begin{equation}
+\text{M4 reproducible}
+\rightarrow
+\text{modelo predictivo}
+\rightarrow
+\text{MPC}.
+\end{equation}
+
+El modelo predictivo deberá conservar la trazabilidad de las simplificaciones adoptadas.
+
+\subsection{Relación con ANFIS y neurodifuso}
+
+La arquitectura prevista coloca ANFIS como capa supervisora o adaptativa y no como sustituto de la planta ni del controlador principal.
+
+La separación conceptual es:
+
+\begin{equation}
+\text{ANFIS}
+\rightarrow
+\text{supervisión/adaptación}
+\rightarrow
+\text{FOC}.
+\end{equation}
+
+La planta permanece:
+
+\begin{equation}
+\text{PMSM}
+\end{equation}
+
+y el FOC continúa siendo el controlador funcional de la primera arquitectura cerrada.
+
+La reconstrucción Python permite preparar los datos necesarios para futuras estrategias neurodifusas sin alterar la definición física de la planta.
+
+\subsection{Relación con TinyML}
+
+La misma filosofía se aplica a las futuras capas TinyML.
+
+Los datos producidos por la planta pueden utilizarse para construir conjuntos de entrenamiento, validación y prueba.
+
+La cadena futura puede representarse como:
+
+\begin{equation}
+\text{PMSM}
+\rightarrow
+\text{datos}
+\rightarrow
+\text{modelo TinyML}
+\rightarrow
+\text{supervisión}.
+\end{equation}
+
+La generación de estos datos debe conservar las condiciones físicas y experimentales utilizadas para producirlos.
+
+De esta manera, la planta se convierte en una fuente controlada de escenarios para el desarrollo de inteligencia aplicada al control.
+
+\subsection{Contratos de interfaz}
+
+La reconstrucción Python mantiene la separación conceptual entre bloques mediante interfaces.
+
+La planta no debe conocer la implementación interna del controlador.
+
+El controlador tampoco debe depender de detalles internos de integración de la planta.
+
+La comunicación conceptual es:
+
+\begin{equation}
+\text{controlador}
+\rightarrow
+[\text{contrato}]
+\rightarrow
+\text{planta},
+\end{equation}
+
+y:
+
+\begin{equation}
+\text{planta}
+\rightarrow
+[\text{contrato}]
+\rightarrow
+\text{controlador}.
+\end{equation}
+
+Esta separación será necesaria para trasladar posteriormente la arquitectura a Simulink/Simscape.
+
+\subsection{Ventaja de la planta común}
+
+Una planta común permite comparar diferentes estrategias sin reconstruir el sistema físico para cada controlador.
+
+La condición puede expresarse como:
+
+\begin{equation}
+PMSM_{\mathrm{common}}
+=
+PMSM_{\mathrm{FOC}}
+=
+PMSM_{\mathrm{MPC}}
+=
+PMSM_{\mathrm{ANFIS}}
+=
+PMSM_{\mathrm{TinyML}}.
+\end{equation}
+
+La igualdad anterior representa la intención arquitectónica de utilizar una misma planta física de referencia, no la afirmación de que todos los modelos futuros tendrán exactamente el mismo nivel de fidelidad.
+
+Conforme la planta evolucione, las diferentes estrategias deberán compararse sobre versiones identificadas de dicha planta.
+
+\subsection{Control de fidelidad}
+
+La evolución de la planta debe estar acompañada por una identificación clara del nivel de fidelidad.
+
+El modelo M4 actual corresponde a una representación concentrada.
+
+Las futuras versiones podrán incorporar:
+
+\begin{itemize}
+    \item mapas electromagnéticos;
+    \item saturación;
+    \item dependencia angular;
+    \item armónicos;
+    \item pérdidas adicionales;
+    \item dependencia térmica;
+    \item modelos FEM;
+    \item modelos reducidos ROM.
+\end{itemize}
+
+Cada aumento de fidelidad debe conservar una relación explícita con la versión anterior.
+
+Esto permite determinar si una mejora en una estrategia de control proviene realmente del controlador o de una modificación simultánea de la planta.
+
+\subsection{Criterio de evolución}
+
+La evolución del modelo no debe realizarse únicamente por complejidad.
+
+Una representación de mayor fidelidad debe incorporar información adicional que pueda justificarse mediante datos o modelos de referencia.
+
+El criterio conceptual es:
+
+\begin{equation}
+\text{mayor fidelidad}
+\Rightarrow
+\text{mayor información física verificable}.
+\end{equation}
+
+No:
+
+\begin{equation}
+\text{mayor complejidad}
+\Rightarrow
+\text{mayor validez}.
+\end{equation}
+
+Esta distinción es especialmente importante para evitar introducir parámetros o fenómenos no sustentados.
+
+\subsection{Estado actual de la reconstrucción}
+
+La implementación actual permite ejecutar una planta PMSM concentrada con parametrización M4 y conectarla a una cadena cerrada FOC.
+
+El modelo actual no debe describirse como:
+
+\begin{itemize}
+    \item un modelo FEM;
+    \item un modelo no lineal completo;
+    \item un conjunto de mapas electromagnéticos validados;
+    \item un modelo térmico completo;
+    \item un Digital Twin terminado.
+\end{itemize}
+
+Su función actual es proporcionar una semilla reproducible y trazable sobre la cual puedan construirse esos niveles posteriores.
+
+\subsection{Valor metodológico de la reconstrucción}
+
+La reconstrucción Python permite transformar una recuperación de archivos en una metodología reproducible.
+
+El conocimiento queda distribuido entre:
+
+\begin{equation}
+\text{documentación}
++
+\text{ecuaciones}
++
+\text{código}
++
+\text{experimentos}
++
+\text{resultados}.
+\end{equation}
+
+Esta estructura reduce la dependencia de un único archivo o herramienta.
+
+También permite que una modificación futura pueda localizarse en términos de:
+
+\begin{equation}
+\text{fuente}
+\rightarrow
+\text{parámetro}
+\rightarrow
+\text{ecuación}
+\rightarrow
+\text{código}
+\rightarrow
+\text{resultado}.
+\end{equation}
+
+Esta trazabilidad constituye uno de los fundamentos del Digital Twin desarrollado en este trabajo.
+
+\subsection{Cierre del capítulo}
+
+La reconstrucción reproducible en Python convierte la formulación de la planta PMSM en una implementación explícita y versionable.
+
+La estructura actual separa los parámetros M4, las ecuaciones de la planta, las interfaces de entrada y salida y las capas de control. Esta separación permite utilizar la misma planta como plataforma común para FOC y para las futuras estrategias MPC, ANFIS y TinyML.
+
+La implementación M4 constituye actualmente una representación concentrada y reproducible. Los mapas electromagnéticos, el modelo no lineal, FEM y ROM representan etapas futuras de aumento de fidelidad y no se consideran capacidades ya implementadas.
+
+La relación con MATLAB/Simscape permanece complementaria: MATLAB/Simscape aporta la referencia de implementación y evidencia histórica, mientras que Python proporciona la reconstrucción explícita, reproducible y versionable.
+
+Con esta base queda establecida una semilla computacional sobre la cual puede desarrollarse la validación de la planta y, posteriormente, su evolución hacia el Digital Twin PMSM.
+
+El siguiente capítulo documentará la validación de la planta, estableciendo qué propiedades pueden verificarse actualmente, qué métricas deben utilizarse y cuáles son todavía los límites de evidencia del modelo M4.

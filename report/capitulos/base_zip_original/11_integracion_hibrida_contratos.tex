@@ -1,0 +1,22 @@
+\section{Integración híbrida y contratos de frontera}
+
+Los contratos de frontera rigen las interfaces entre módulos y constituyen una especificación distinta de la organización física del repositorio. El repositorio indica dónde se conserva cada componente; los contratos indican cómo puede interactuar.
+
+\begin{table}[H]
+\centering
+\caption{Fronteras funcionales principales.}
+\begin{tabular}{p{0.27\textwidth}p{0.60\textwidth}}
+\toprule
+Frontera & Responsabilidad \\
+\midrule
+Referencia $\rightarrow$ FOC & referencias y límites contractuales \\
+FOC $\rightarrow$ M3 & $v_d$, $v_q$ y señales requeridas \\
+M3 $\rightarrow$ M2 & señales funcionales de actuación \\
+M2 $\rightarrow$ M4 & acción equivalente aplicada a la planta \\
+M4 $\rightarrow$ M1/M6 & corrientes, posición y velocidad \\
+M7 $\rightarrow$ M6 & información predictiva/adaptativa acotada; no sustituye al FOC \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La arquitectura híbrida deberá preservar tres principios: el FOC mantiene el control directo; la inteligencia actúa mediante contratos explícitos; y toda función inteligente puede desarrollarse y verificarse primero en Python antes de su implementación en Simulink/Simscape.

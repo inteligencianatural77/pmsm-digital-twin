@@ -1,0 +1,31 @@
+\section{Modelo matemático del PMSM}
+
+\subsection{Dinámica eléctrica en $dq$}
+
+La representación de referencia empleada para la planta es:
+\begin{align}
+\frac{di_d}{dt} &= \frac{v_d-R_s i_d+\omega_e L_q i_q}{L_d},\\
+\frac{di_q}{dt} &= \frac{v_q-R_s i_q-\omega_e(L_d i_d+\lambda_m)}{L_q}.
+\end{align}
+
+\subsection{Par electromagnético}
+
+Como formulación clásica de referencia:
+\begin{equation}
+T_e=\frac{3}{2}p\left(\lambda_m i_q+(L_d-L_q)i_d i_q\right).
+\end{equation}
+
+Esta expresión se trata como ecuación de referencia para la reconstrucción y no como identificación exacta de la ley interna del modelo Simscape histórico.
+
+En la parametrización actual $L_d=L_q$, por lo que el término clásico de reluctancia se anula.
+
+\subsection{Dinámica mecánica}
+\begin{align}
+\frac{d\omega_m}{dt} &= \frac{T_e-T_{load}}{J},\\
+\frac{d\theta_m}{dt} &= \omega_m.
+\end{align}
+
+La relación entre ángulo mecánico y eléctrico es:
+\begin{equation}
+\theta_e=p\theta_m=4\theta_m.
+\end{equation}

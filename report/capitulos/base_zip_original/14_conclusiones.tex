@@ -1,0 +1,7 @@
+\section{Conclusiones y trabajo futuro}
+
+El sistema se estructura alrededor de una planta PMSM y un FOC como controlador principal, con una capa inteligente en desarrollo destinada a aportar predicción, adaptación y capacidades de control avanzado sin desplazar la responsabilidad directa del lazo FOC.
+
+La metodología de trabajo queda establecida como Python para desarrollo y validación independiente, seguida de Simulink/Simscape para implementación e integración. El modelo histórico \texttt{skeleton.slx} conserva un papel temporal de referencia arquitectónica y de trazabilidad.
+
+El trabajo futuro se concentra en formalizar los contratos M6--M7, construir conjuntos de datos, desarrollar ANFIS, estudiar MPC, evaluar Tiny/TinyML, cuantificar mejoras y trasladar a Simulink/Simscape únicamente las soluciones cuya función haya sido comprobada previamente en Python.

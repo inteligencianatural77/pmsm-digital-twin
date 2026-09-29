@@ -1,0 +1,29 @@
+\section{Arquitectura funcional M1--M8}
+
+La nomenclatura M1--M8 se conserva como referencia arquitectónica procedente del modelo histórico. No todos los módulos se encuentran actualmente implementados con el mismo grado de madurez en Python.
+
+\begin{table}[H]
+\centering
+\caption{Funciones y estado de los módulos M1--M8.}
+\begin{tabular}{p{0.15\textwidth}p{0.43\textwidth}p{0.30\textwidth}}
+\toprule
+Módulo & Función & Estado actual \\
+\midrule
+M1 & Instrumentación y observabilidad & Reconstrucción funcional \\
+M2 & Convertidor de potencia & Simplificado en la reconstrucción \\
+M3 & Interfaz eléctrica y transformaciones & Reconstrucción funcional \\
+M4 & Planta PMSM & Modelo base establecido \\
+M5 & Evidencia, métricas y validación & Consistencia/reproducibilidad; validación física pendiente \\
+M6 & Control FOC & Funcional/reconstruido \\
+M7 & Inteligencia, adaptación y predicción & En desarrollo \\
+M8 & Supervisión superior y seguridad & Preparado; implementación final pendiente \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El flujo principal del sistema es:
+\begin{equation}
+\text{M6 FOC}\rightarrow\text{M3}\rightarrow\text{M2}\rightarrow\text{M4 PMSM}\rightarrow\text{retroalimentación}.
+\end{equation}
+
+La capa M7 deberá interactuar mediante contratos de frontera y no sustituirá al FOC como controlador principal.

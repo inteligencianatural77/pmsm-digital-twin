@@ -1,0 +1,284 @@
+% Capítulo 02 — Máquina de referencia: Siemens 1FT7087
+\section{Máquina de referencia: Siemens 1FT7087}
+
+\subsection{Origen físico de la planta}
+
+La planta PMSM desarrollada en este trabajo tiene como referencia física una máquina síncrona de imanes permanentes de la familia Siemens SIMOTICS S-1FT7. La referencia utilizada como base del proyecto es el motor identificado como \textit{SIMOTICS S-1FT7087-7WH70-4CH0}. Esta identificación constituye el punto de partida de la trazabilidad física de la planta y permite separar desde el comienzo los datos propios de la máquina de las condiciones de accionamiento, los parámetros del controlador y las decisiones posteriores de modelado.
+
+La máquina física no se incorpora al proyecto únicamente como un conjunto de números para alimentar una simulación. Su documentación constituye la fuente primaria para establecer magnitudes eléctricas, mecánicas, térmicas y de operación que posteriormente se transforman en una parametrización concentrada y reproducible. A partir de esta parametrización se formula el modelo matemático de la PMSM y, posteriormente, se plantea su evolución hacia representaciones electromagnéticas de mayor fidelidad.
+
+La genealogía adoptada en el proyecto puede resumirse como:
+
+\begin{equation}
+\begin{aligned}
+\text{máquina física}
+&\rightarrow \text{documentación}
+\rightarrow \text{caracterización}
+\rightarrow \text{parametrización}
+\\
+&\rightarrow \text{modelo matemático}
+\rightarrow \text{planta digital}
+\end{aligned}
+\end{equation}
+
+Esta secuencia evita interpretar directamente una implementación computacional como si fuera la máquina física. Cada nivel conserva su propia procedencia y sus propias hipótesis.
+
+\subsection{Identificación de la referencia Siemens}
+
+La referencia documental principal utilizada para la caracterización es el manual de configuración de motores síncronos S-1FT7 de Siemens, \textit{S-1FT7 synchronous motors --- Configuration Manual}, documento A5E45099423B AB, edición 03/2024. Este documento proporciona tablas de características, condiciones de operación, parámetros nominales y curvas de funcionamiento de la familia de motores.
+
+La identificación del proyecto se mantiene como \textit{1FT7087-7WH70-4CH0}. En la documentación consultada aparecen, además, denominaciones de familia que no son idénticas en todos los elementos gráficos y tabulares. En particular, algunas curvas de desempeño están rotuladas como \textit{1FT7087-7WH71}, mientras que una tabla numérica utiliza la denominación \textit{1FT7087-7WH7}. Por esta razón, el proyecto conserva la identificación 7WH70-4CH0 como referencia principal y registra estas diferencias documentales sin asumir de manera automática que todas las variantes son idénticas.
+
+Esta precaución es relevante para la trazabilidad. Un valor publicado para una variante de la familia puede servir como referencia documental, pero antes de utilizarlo como evidencia específica de la unidad 7WH70-4CH0 debe verificarse su correspondencia.
+
+\subsection{Datos nominales de la máquina}
+
+La documentación Siemens proporciona las principales magnitudes nominales y límites de operación de la máquina de referencia. Entre ellas se encuentran una velocidad nominal de 4500 rpm, un par nominal de 46 N m y una corriente nominal de 53 A. También se documentan un par estático de 61 N m para la condición S1(100K), una corriente de rotor bloqueado de 67 A, una velocidad mecánica máxima de 8000 rpm, un par máximo de 150 N m y una corriente máxima de 225 A.
+
+Los datos anteriores pertenecen a la caracterización de la máquina y no deben confundirse con los límites utilizados posteriormente por el controlador reconstruido. Por ejemplo, el límite de corriente utilizado en una reconstrucción histórica del FOC constituye una condición de control y no sustituye al valor de corriente máxima publicado para el motor.
+
+Los principales datos documentales utilizados como referencia son:
+
+\begin{itemize}
+    \item velocidad nominal: $4500\,\mathrm{rpm}$;
+    \item par nominal: $46\,\mathrm{N\,m}$;
+    \item corriente nominal: $53\,\mathrm{A}$;
+    \item par estático S1(100K): $61\,\mathrm{N\,m}$;
+    \item corriente de rotor bloqueado: $67\,\mathrm{A}$;
+    \item velocidad mecánica máxima: $8000\,\mathrm{rpm}$;
+    \item par máximo: $150\,\mathrm{N\,m}$;
+    \item corriente máxima documentada: $225\,\mathrm{A}$;
+    \item número de polos: $2p=8$.
+\end{itemize}
+
+La documentación también proporciona condiciones de convertidor asociadas a los datos de la máquina. Estas condiciones se mantienen separadas de los parámetros intrínsecos del motor. En particular, la documentación relaciona los datos nominales con un enlace de continua de referencia de $600\,\mathrm{V}$.
+
+\subsection{Número de polos y pares de polos}
+
+La máquina está documentada con ocho polos físicos. Para la formulación eléctrica en coordenadas $d$--$q$, este dato se expresa mediante el número de pares de polos:
+
+\begin{equation}
+2p=8
+\end{equation}
+
+por lo que:
+
+\begin{equation}
+p=4.
+\end{equation}
+
+Este valor de $p=4$ es el utilizado en la relación entre magnitudes mecánicas y eléctricas:
+
+\begin{equation}
+\omega_e=p\omega_m
+\end{equation}
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+\subsection{Parámetros eléctricos documentales}
+
+La documentación Siemens proporciona una resistencia de devanado de $0.046\,\Omega$ a $20\,^{\circ}\mathrm{C}$ y una inductancia identificada como $L_D=1.2\,\mathrm{mH}$. También proporciona una constante de par y una constante de tensión que permiten construir referencias independientes para la parametrización electromagnética.
+
+Los valores documentales principales son:
+
+\begin{itemize}
+    \item resistencia de devanado a $20\,^{\circ}\mathrm{C}$: $R=0.046\,\Omega$;
+    \item inductancia documentada: $L_D=1.2\,\mathrm{mH}$;
+    \item constante de par: $k_T=0.91\,\mathrm{N\,m/A}$;
+    \item constante de tensión: $k_E=58\,\mathrm{V/(1000\,rpm)}$.
+\end{itemize}
+
+La presencia de un único valor de inductancia documental no permite afirmar directamente que la máquina física tenga $L_d=L_q$ bajo todas las condiciones de operación. La igualdad $L_d=L_q=1.2\,\mathrm{mH}$ adoptada en el nivel M4 corresponde a una hipótesis del modelo concentrado actual. La eventual anisotropía, saturación y dependencia angular pertenecen a niveles de fidelidad posteriores.
+
+\subsection{Constante de par y flujo magnético equivalente}
+
+La constante de par publicada permite construir una estimación del enlace de flujo equivalente empleado en el modelo $d$--$q$:
+
+\begin{equation}
+k_T=\frac{3}{2}\sqrt{2}\,p\lambda_m.
+\end{equation}
+
+Despejando:
+
+\begin{equation}
+\lambda_m=
+\frac{k_T}{\left(\frac{3}{2}\right)\sqrt{2}\,p}.
+\end{equation}
+
+Con $k_T=0.91\,\mathrm{N\,m/A}$ y $p=4$, se obtiene aproximadamente:
+
+\begin{equation}
+\lambda_m\approx0.107245\,\mathrm{Wb}.
+\end{equation}
+
+Este valor es el utilizado como referencia numérica en la parametrización M4 actual. Es un valor derivado a partir de una constante publicada y de la convención matemática adoptada, no un valor publicado directamente por Siemens con esa misma magnitud y convención.
+
+\subsection{Constante de tensión como referencia independiente}
+
+La documentación también proporciona $k_E=58\,\mathrm{V/(1000\,rpm)}$. Esta magnitud constituye una segunda referencia para evaluar el orden de magnitud del enlace de flujo, pero debe conservar sus condiciones de definición.
+
+La constante de par está asociada a una condición térmica indicada por el fabricante, mientras que la constante de tensión se especifica a $20\,^{\circ}\mathrm{C}$. Por ello, una diferencia entre una estimación basada en $k_T$ y otra basada en $k_E$ no se interpreta automáticamente como un error de la planta.
+
+\subsection{Parámetros mecánicos}
+
+La documentación proporciona la inercia del rotor según la configuración mecánica. Para la máquina sin freno se documenta:
+
+\begin{equation}
+J_{\mathrm{sin\ freno}}=0.00274\,\mathrm{kg\,m^2},
+\end{equation}
+
+mientras que para la configuración con freno:
+
+\begin{equation}
+J_{\mathrm{con\ freno}}=0.00416\,\mathrm{kg\,m^2}.
+\end{equation}
+
+La parametrización M4 utiliza actualmente:
+
+\begin{equation}
+J=0.00416\,\mathrm{kg\,m^2}.
+\end{equation}
+
+Esta elección se conserva como una decisión trazable de configuración. La dinámica mecánica M4 no incorpora todavía elasticidad torsional del eje ni un modelo detallado de transmisión.
+
+\subsection{Límites de operación y condiciones del convertidor}
+
+La máquina tiene una velocidad mecánica máxima documentada de $8000\,\mathrm{rpm}$, un par máximo de $150\,\mathrm{N\,m}$ y una corriente máxima documentada de $225\,\mathrm{A}$.
+
+Estos valores describen características de la máquina según las condiciones especificadas por el fabricante. No constituyen automáticamente los límites internos de una simulación de control.
+
+En particular, el proyecto utiliza una condición de enlace de continua de $540\,\mathrm{V}$ en el experimento B0. Este valor pertenece al dominio eléctrico del accionamiento utilizado en el experimento y no es un parámetro intrínseco del motor.
+
+\begin{equation}
+\text{parámetros de planta}
+\neq
+\text{condiciones del accionamiento}
+\neq
+\text{parámetros del controlador}.
+\end{equation}
+
+\subsection{Condiciones térmicas y de servicio}
+
+La documentación distingue condiciones de operación continua S1 asociadas a incrementos de temperatura de $100\,\mathrm{K}$ y $60\,\mathrm{K}$, además de condiciones de servicio intermitente.
+
+La constante $k_E$ está documentada a $20\,^{\circ}\mathrm{C}$, mientras que $k_T$ se especifica bajo una condición térmica diferente. La resistencia también se proporciona a $20\,^{\circ}\mathrm{C}$. Estas condiciones deben conservarse al comparar magnitudes.
+
+La planta M4 almacena actualmente algunos coeficientes térmicos como información de trazabilidad, pero no incorpora todavía una dinámica térmica completa.
+
+\subsection{Datos documentales frente a parámetros M4}
+
+La caracterización distingue:
+
+\begin{itemize}
+    \item datos publicados directamente por el fabricante;
+    \item magnitudes derivadas mediante ecuaciones y convenciones;
+    \item decisiones de modelado adoptadas para M4;
+    \item valores históricos o recuperados cuya procedencia aún debe verificarse.
+\end{itemize}
+
+En el modelo M4 actual se utilizan:
+
+\begin{itemize}
+    \item $R_s=0.05\,\Omega$;
+    \item $L_d=L_q=1.2\,\mathrm{mH}$;
+    \item $\lambda_m=0.107245\,\mathrm{Wb}$;
+    \item $p=4$;
+    \item $J=0.00416\,\mathrm{kg\,m^2}$.
+\end{itemize}
+
+La resistencia M4 de $0.05\,\Omega$ no sustituye al valor documental de $0.046\,\Omega$ a $20\,^{\circ}\mathrm{C}$. La diferencia queda registrada.
+
+De igual manera, $L_d=L_q$ constituye una hipótesis del nivel M4 y no una demostración de que la máquina física carezca de anisotropía.
+
+\subsection{Parámetros pendientes}
+
+Los parámetros de fricción viscosa $B$ y par de fricción $T_{\mathrm{fric}}$ no se incorporan como valores M4 confirmados. Los valores históricos asociados a reconstrucciones anteriores se mantienen separados y pendientes de verificación.
+
+También permanece pendiente la caracterización detallada de saturación, dependencia angular, armónicos, pérdidas y dinámica térmica.
+
+\subsection{Separación entre planta, accionamiento y control}
+
+La máquina de referencia define la planta física. El convertidor, el enlace de continua, la modulación y los límites del controlador forman capas posteriores.
+
+Esta separación es necesaria para que el mismo modelo de planta pueda utilizarse posteriormente con FOC, MPC, ANFIS y TinyML sin modificar silenciosamente sus parámetros físicos.
+
+\begin{equation}
+\text{máquina PMSM}
+\rightarrow
+\text{planta}
+\rightarrow
+\text{interfaz de accionamiento}
+\rightarrow
+\text{controlador}.
+\end{equation}
+
+Las interfaces entre estos niveles deberán conservar contratos explícitos.
+
+\subsection{Curvas de funcionamiento como evidencia futura}
+
+La documentación Siemens incluye curvas par--velocidad de la familia 1FT7087. Estas curvas constituyen una fuente importante de evidencia para etapas posteriores de validación porque permiten comparar regiones de funcionamiento, límites de par, velocidad y condiciones del convertidor.
+
+Las curvas distinguen condiciones de alimentación y enlace de continua. Por ello, una futura digitalización deberá conservar conjuntamente los ejes, la condición eléctrica, la configuración del convertidor y la identificación de la curva.
+
+La digitalización deberá registrar como mínimo:
+
+\begin{itemize}
+    \item fuente documental;
+    \item página de origen;
+    \item condición de alimentación;
+    \item condición del enlace de continua;
+    \item variante indicada por la figura;
+    \item sistema de unidades;
+    \item método de digitalización;
+    \item versión del conjunto de datos.
+\end{itemize}
+
+No se presentan aquí puntos digitalizados como resultados validados del modelo M4.
+
+\subsection{Discrepancias de variante documental}
+
+La trazabilidad conserva una diferencia importante entre la referencia física del proyecto y algunas denominaciones presentes en el manual. El proyecto utiliza como referencia principal:
+
+\begin{equation}
+\text{SIMOTICS S-1FT7087-7WH70-4CH0}.
+\end{equation}
+
+Sin embargo, determinadas curvas aparecen identificadas como 1FT7087-7WH71 y algunas tablas como 1FT7087-7WH7.
+
+Esta diferencia no se resuelve suponiendo equivalencia. Cualquier utilización futura de esas curvas como evidencia cuantitativa deberá verificar primero la correspondencia de variante.
+
+\subsection{Evolución prevista de la representación física}
+
+La referencia Siemens constituye el origen físico de una cadena de fidelidad:
+
+\begin{equation}
+\mathrm{M4}
+\rightarrow
+\mathrm{mapas\ electromagn\acute{e}ticos}
+\rightarrow
+\mathrm{modelo\ no\ lineal}
+\rightarrow
+\mathrm{FEM/ROM}
+\rightarrow
+\mathrm{Digital\ Twin}.
+\end{equation}
+
+El nivel M4 proporciona actualmente una planta concentrada, ejecutable y reproducible. Los niveles posteriores incorporarán información electromagnética y fenómenos físicos adicionales únicamente cuando exista información trazable para hacerlo.
+
+El aumento de fidelidad no consiste simplemente en agregar complejidad al código, sino en incorporar información física cuya procedencia y comportamiento puedan verificarse.
+
+\subsection{Criterio para cerrar la caracterización}
+
+La caracterización resulta suficientemente estable para el nivel M4 cuando los parámetros activos tienen procedencia identificable, las magnitudes derivadas conservan sus ecuaciones de cálculo, las decisiones de modelado están declaradas y los datos pendientes no se presentan como hechos confirmados.
+
+A partir de esta base puede formalizarse la planta matemática sin confundir el nivel actual de conocimiento con una caracterización completa de todos los fenómenos físicos.
+
+\subsection{Cierre del capítulo}
+
+La máquina Siemens 1FT7087 constituye la referencia física sobre la cual se construye la planta PMSM del proyecto. La documentación del fabricante proporciona las magnitudes necesarias para establecer una primera parametrización y, al mismo tiempo, delimita las condiciones bajo las cuales dichas magnitudes deben interpretarse.
+
+El valor de esta etapa no reside solamente en disponer de parámetros numéricos, sino en establecer una genealogía reproducible entre la máquina física, la documentación, las magnitudes derivadas y el modelo computacional. La parametrización M4 representa actualmente este primer nivel de fidelidad.
+
+A partir de esta base, el capítulo siguiente formaliza la caracterización y parametrización de la máquina, distinguiendo los datos confirmados, las magnitudes derivadas, las hipótesis del modelo y los elementos que permanecen pendientes de verificación.

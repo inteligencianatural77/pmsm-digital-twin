@@ -1,0 +1,776 @@
+\section{Evolución hacia modelo no lineal, FEM y ROM}
+
+\subsection{Propósito del capítulo}
+
+La planta PMSM desarrollada hasta este punto se encuentra en un nivel de representación concentrado, denominado M4. Este nivel proporciona una representación matemática, ejecutable y reproducible de la máquina a partir de un conjunto reducido de parámetros físicamente trazables.
+
+El objetivo de las etapas posteriores no es sustituir arbitrariamente esta representación, sino aumentar progresivamente la cantidad y resolución de los fenómenos físicos representados. La evolución debe conservar al mismo tiempo la reproducibilidad, la trazabilidad de los datos y la separación entre la planta y las capas de control.
+
+La arquitectura de evolución no se interpreta como una cadena estrictamente secuencial. M4 constituye la base activa; los mapas y el modelo no lineal permiten enriquecer la representación de la planta; FEM puede proporcionar una fuente independiente de información electromagnética de mayor fidelidad; y ROM puede utilizar esa información para construir representaciones computacionalmente más eficientes.
+
+De forma conceptual:
+
+\begin{equation}
+\mathrm{M4}
+\rightarrow
+\text{enriquecimiento electromagnético}
+\rightarrow
+\text{modelos de mayor fidelidad}
+\end{equation}
+
+mientras que:
+
+\begin{equation}
+\mathrm{FEM}
+\rightarrow
+\text{datos de alta fidelidad}
+\rightarrow
+\text{mapas y/o ROM}.
+\end{equation}
+
+Estos niveles pueden posteriormente integrarse dentro de la arquitectura del Digital Twin.
+
+\subsection{Principio de aumento progresivo de fidelidad}
+
+Un modelo de mayor complejidad no es automáticamente un modelo de mayor fidelidad.
+
+La fidelidad debe relacionarse con la capacidad de representar fenómenos físicos relevantes mediante información cuya procedencia pueda ser demostrada.
+
+Por ello, cada incremento de fidelidad deberá responder al menos a tres preguntas:
+
+\begin{itemize}
+\item qué fenómeno físico adicional se pretende representar;
+\item qué información permite representarlo;
+\item cómo se verificará que la nueva representación es consistente con una referencia.
+\end{itemize}
+
+Este criterio evita incorporar complejidad únicamente por razones de implementación y mantiene una relación explícita entre física, datos y modelo computacional.
+
+\subsection{Nivel M4 como referencia}
+
+El nivel M4 constituye actualmente la referencia activa de la planta.
+
+Su formulación utiliza:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m
+\end{equation}
+
+\begin{equation}
+\psi_q=L_qi_q
+\end{equation}
+
+y el torque electromagnético de referencia:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p
+\left[
+\lambda_mi_q+
+(L_d-L_q)i_di_q
+\right].
+\end{equation}
+
+La dinámica eléctrica se mantiene en forma concentrada:
+
+\begin{equation}
+\frac{di_d}{dt} =
+\frac{v_d-R_si_d+\omega_eL_qi_q}{L_d}.
+\end{equation}
+
+\begin{equation}
+\frac{di_q}{dt} =
+\frac{v_q-R_si_q-\omega_e(L_di_d+\lambda_m)}{L_q}.
+\end{equation}
+
+La dinámica mecánica se representa mediante:
+
+\begin{equation}
+J\frac{d\omega_m}{dt} = T_e-T_{\mathrm{load}}.
+\end{equation}
+
+Este modelo constituye la referencia computacional frente a la cual podrán compararse las representaciones posteriores.
+
+\subsection{Qué significa aumentar la fidelidad}
+
+El aumento de fidelidad puede incorporar progresivamente:
+
+\begin{itemize}
+\item dependencia del flujo respecto de las corrientes;
+\item saturación magnética;
+\item anisotropía;
+\item dependencia angular;
+\item variación de las inductancias;
+\item componentes adicionales del torque;
+\item pérdidas electromagnéticas;
+\item comportamiento térmico;
+\item efectos geométricos;
+\item información procedente de FEM;
+\item reducción computacional mediante ROM.
+\end{itemize}
+
+No todos estos fenómenos deben incorporarse simultáneamente.
+
+La arquitectura se diseña para permitir que cada fenómeno se incorpore cuando exista información suficiente para justificarlo.
+
+\subsection{Transición desde parámetros constantes}
+
+En M4, las relaciones de flujo pueden escribirse como funciones de las corrientes:
+
+\begin{equation}
+\psi_d=f_d(i_d,i_q)
+=
+L_di_d+\lambda_m
+\end{equation}
+
+\begin{equation}
+\psi_q=f_q(i_d,i_q)
+=
+L_qi_q.
+\end{equation}
+
+Una representación de mayor fidelidad puede reemplazarlas por:
+
+\begin{equation}
+\psi_d=f_d(i_d,i_q,\theta_e)
+\end{equation}
+
+\begin{equation}
+\psi_q=f_q(i_d,i_q,\theta_e).
+\end{equation}
+
+El torque podrá representarse entonces mediante una relación general:
+
+\begin{equation}
+T_e=f_T(i_d,i_q,\theta_e).
+\end{equation}
+
+La estructura de estados puede mantenerse:
+
+\begin{equation}
+x=
+\begin{bmatrix}
+i_d &
+i_q &
+\omega_m &
+\theta_m
+\end{bmatrix}^{T},
+\end{equation}
+
+aunque la función dinámica interna se vuelve más rica:
+
+\begin{equation}
+\dot{x}=f(x,u,\Theta,\mathcal{M}),
+\end{equation}
+
+donde $\mathcal{M}$ representa la información electromagnética adicional.
+
+\subsection{Modelo no lineal}
+
+El modelo no lineal constituye una extensión de la representación M4 en la que las relaciones electromagnéticas pueden depender de las condiciones de operación en lugar de estar restringidas a parámetros constantes.
+
+Su finalidad es representar dependencias que el modelo M4 no captura directamente.
+
+Entre ellas pueden encontrarse:
+
+\begin{itemize}
+\item saturación;
+\item dependencia cruzada entre $i_d$ e $i_q$;
+\item variación de inductancias;
+\item dependencia angular;
+\item comportamiento no lineal del flujo;
+\item torque dependiente del estado electromagnético.
+\end{itemize}
+
+La formulación general puede expresarse mediante:
+
+\begin{equation}
+\boldsymbol{\psi}
+=
+\boldsymbol{\psi}(i_d,i_q,\theta_e).
+\end{equation}
+
+La matriz de derivadas del flujo puede representarse conceptualmente como:
+
+\begin{equation}
+\mathbf{L}_{\mathrm{dif}}
+=
+\frac{\partial\boldsymbol{\psi}}
+{\partial\mathbf{i}},
+\end{equation}
+
+con:
+
+\begin{equation}
+\mathbf{i}
+=
+\begin{bmatrix}
+i_d\
+i_q
+\end{bmatrix}.
+\end{equation}
+
+Estas relaciones definen la estructura matemática del siguiente nivel de representación. Su incorporación efectiva dependerá de la disponibilidad y verificación de los datos correspondientes.
+
+\subsection{Estado actual del modelo no lineal en Python}
+
+El repositorio contiene una estructura denominada \texttt{pmsm\_nonlinear.py} asociada a la siguiente etapa de evolución.
+
+Actualmente esta estructura funciona como una frontera explícita para el desarrollo futuro y no como un modelo no lineal operativo.
+
+M4 permanece como camino activo de la planta mientras las representaciones posteriores se verifican. Esta separación permite desarrollar la nueva arquitectura sin modificar silenciosamente la referencia reproducible existente.
+
+\subsection{Mapas como entrada del modelo no lineal}
+
+Los mapas descritos en el capítulo anterior constituyen una posible fuente de información para construir el modelo no lineal.
+
+La relación conceptual es:
+
+\begin{equation}
+\text{datos electromagnéticos}
+\rightarrow
+\text{mapas}
+\rightarrow
+\text{funciones interpoladas}
+\rightarrow
+\text{modelo no lineal}.
+\end{equation}
+
+La incorporación deberá realizarse únicamente después de verificar:
+
+\begin{itemize}
+\item ejes;
+\item unidades;
+\item dimensiones;
+\item convenciones;
+\item procedencia;
+\item dominio de validez;
+\item coherencia entre magnitudes.
+\end{itemize}
+
+De esta forma, el modelo no lineal no se convierte en un contenedor de datos de procedencia desconocida.
+
+\subsection{Interpolación como parte del modelo}
+
+Cuando una magnitud física se encuentra tabulada, la interpolación pasa a formar parte de la representación computacional.
+
+Puede escribirse:
+
+\begin{equation}
+\hat{\psi}_d
+=
+\mathcal{I}_d
+\left(
+i_d,i_q,\theta_e
+\right)
+\end{equation}
+
+y:
+
+\begin{equation}
+\hat{\psi}_q
+=
+\mathcal{I}_q
+\left(
+i_d,i_q,\theta_e
+\right).
+\end{equation}
+
+La función de interpolación debe considerarse parte de la configuración del modelo.
+
+Cambiar el método de interpolación puede modificar el resultado de la simulación incluso cuando el conjunto de datos original permanezca idéntico.
+
+Por ello, los experimentos futuros deberán registrar el método utilizado.
+
+\subsection{Dominio de validez}
+
+Todo modelo basado en mapas posee un dominio de validez definido por sus ejes.
+
+Si:
+
+\begin{equation}
+i_d\in[i_{d,\min},i_{d,\max}]
+\end{equation}
+
+\begin{equation}
+i_q\in[i_{q,\min},i_{q,\max}]
+\end{equation}
+
+y:
+
+\begin{equation}
+\theta_e\in[\theta_{\min},\theta_{\max}],
+\end{equation}
+
+la evaluación del modelo debe respetar esos límites.
+
+La extrapolación fuera del dominio deberá considerarse explícitamente.
+
+No se asumirá que una función interpolada reproduce el comportamiento físico fuera de la región para la cual fueron generados sus datos.
+
+\subsection{Validación del modelo no lineal}
+
+La validación del modelo no lineal deberá realizarse contra una referencia independiente.
+
+Las comparaciones podrán incluir:
+
+\begin{itemize}
+\item flujo;
+\item torque;
+\item inductancias;
+\item corriente;
+\item respuesta frente a posición angular;
+\item respuesta frente a velocidad;
+\item pérdidas;
+\item energía.
+\end{itemize}
+
+El criterio de aceptación deberá definirse para cada magnitud y dominio de operación.
+
+Una coincidencia puntual no será suficiente para establecer la validez del modelo en todo el dominio.
+
+\subsection{Introducción del método FEM}
+
+El método de elementos finitos puede utilizarse para obtener una representación electromagnética de mayor resolución espacial.
+
+En una cadena de modelado, FEM puede proporcionar información sobre:
+
+\begin{itemize}
+\item distribución de campo magnético;
+\item densidad de flujo;
+\item enlaces de flujo;
+\item torque;
+\item inductancias;
+\item dependencia angular;
+\item pérdidas específicas del modelo utilizado.
+\end{itemize}
+
+La salida de FEM puede convertirse posteriormente en datos tabulados para construir mapas o alimentar otras representaciones computacionales.
+
+La relación conceptual es:
+
+\begin{equation}
+\text{geometría}
+\rightarrow
+\text{mallado}
+\rightarrow
+\mathrm{FEM}
+\rightarrow
+\text{solución electromagnética}
+\rightarrow
+\text{datos}.
+\end{equation}
+
+La cadena anterior representa una posible fuente de información de alta fidelidad y no implica que todos los mapas recuperados durante la reconstrucción tengan necesariamente ese origen.
+
+\subsection{FEM y la geometría de la máquina}
+
+Una simulación FEM requiere una representación geométrica y material suficientemente definida.
+
+Para la máquina de referencia, la genealogía de geometría debe mantenerse separada de la parametrización M4.
+
+La existencia histórica de archivos de geometría, STEP, materiales o modelos FEM no implica automáticamente que todos ellos correspondan exactamente a la unidad Siemens de referencia.
+
+La correspondencia deberá establecerse mediante trazabilidad documental y geométrica.
+
+Por ello, cualquier modelo FEM futuro deberá registrar:
+
+\begin{itemize}
+\item geometría utilizada;
+\item materiales;
+\item condiciones de frontera;
+\item malla;
+\item posición angular;
+\item condiciones de corriente;
+\item condiciones térmicas;
+\item solver;
+\item versión;
+\item archivos de entrada;
+\item archivos de salida.
+\end{itemize}
+
+\subsection{FEM como referencia de alta fidelidad}
+
+En la arquitectura propuesta, FEM puede convertirse en una referencia de alta fidelidad para evaluar representaciones reducidas o modelos basados en mapas.
+
+Esto no significa que FEM deba ejecutarse durante cada experimento de control.
+
+Por el contrario, el objetivo puede ser utilizar FEM para generar un conjunto de datos representativo y posteriormente construir una representación computacionalmente más eficiente.
+
+La relación puede escribirse como:
+
+\begin{equation}
+\mathrm{FEM}
+\rightarrow
+\text{dataset de alta fidelidad}
+\rightarrow
+\text{mapas y/o modelo reducido}
+\rightarrow
+\text{simulación de control}.
+\end{equation}
+
+La utilidad de esta cadena dependerá de que el modelo FEM y los datos generados sean suficientemente representativos y verificables.
+
+\subsection{Estado actual de FEM}
+
+La implementación Python actual no contiene un solver FEM activo.
+
+Por tanto, FEM se considera actualmente una etapa de evolución y una posible fuente de datos de alta fidelidad, no una capacidad ya integrada en la planta.
+
+Los artefactos electromagnéticos recuperados descritos anteriormente tampoco demuestran por sí mismos que se haya reconstruido el procedimiento FEM que los originó.
+
+La procedencia deberá establecerse antes de utilizar cualquier dato como referencia FEM.
+
+\subsection{Modelo reducido}
+
+Un modelo reducido, o ROM, busca conservar las características relevantes de una representación de mayor fidelidad reduciendo el costo computacional.
+
+Conceptualmente:
+
+\begin{equation}
+\mathcal{M}*{\mathrm{alta\ fidelidad}}
+\longrightarrow
+\mathcal{M}*{\mathrm{ROM}}.
+\end{equation}
+
+Cuando la fuente sea un modelo FEM, la reducción podrá expresarse como:
+
+\begin{equation}
+\mathcal{M}*{\mathrm{FEM}}
+\longrightarrow
+\mathcal{M}*{\mathrm{ROM}}.
+\end{equation}
+
+El objetivo no es conservar toda la información disponible, sino identificar una representación suficiente para el propósito de simulación definido.
+
+La reducción deberá evaluarse respecto de una referencia y no solamente respecto de su estabilidad numérica.
+
+\subsection{ROM y control en tiempo de ejecución}
+
+El interés de un ROM dentro del Digital Twin está relacionado con la posibilidad de utilizar una representación de mayor riqueza física durante experimentos de control sin asumir necesariamente el costo computacional de un solver FEM completo.
+
+Esto puede ser especialmente relevante para:
+
+\begin{itemize}
+\item simulaciones de larga duración;
+\item barridos paramétricos;
+\item MPC;
+\item optimización;
+\item generación de datasets;
+\item entrenamiento de modelos inteligentes;
+\item evaluación de estrategias híbridas.
+\end{itemize}
+
+La reducción debe preservar las variables necesarias para las interfaces de planta.
+
+\subsection{Criterios de un ROM}
+
+Un ROM futuro deberá evaluarse al menos mediante:
+
+\begin{itemize}
+\item error respecto a la referencia;
+\item dominio de operación;
+\item costo computacional;
+\item estabilidad numérica;
+\item continuidad;
+\item conservación de magnitudes físicas relevantes;
+\item sensibilidad a las condiciones de operación.
+\end{itemize}
+
+El criterio de reducción deberá relacionarse con el objetivo de uso.
+
+Un ROM diseñado para una simulación de control puede tener requisitos diferentes de uno destinado a análisis electromagnético detallado.
+
+\subsection{Conservación de energía y consistencia física}
+
+El aumento de fidelidad no debe evaluarse únicamente mediante diferencias punto a punto.
+
+También será necesario verificar la consistencia física de magnitudes como energía, potencia y torque.
+
+Una relación fundamental es:
+
+\begin{equation}
+P_m=T_e\omega_m.
+\end{equation}
+
+La potencia eléctrica y la potencia mecánica deberán poder relacionarse mediante las pérdidas representadas por el nivel de modelo utilizado.
+
+A medida que se incorporen pérdidas y fenómenos adicionales, la contabilidad energética se convertirá en una herramienta importante para detectar inconsistencias.
+
+\subsection{Pérdidas}
+
+El modelo M4 actual no incorpora una descripción detallada de pérdidas electromagnéticas.
+
+Las estructuras recuperadas que contienen nombres asociados a coeficientes de pérdidas permanecen pendientes de interpretación.
+
+Una futura extensión podrá distinguir, según la información disponible:
+
+\begin{itemize}
+\item pérdidas de cobre;
+\item pérdidas en hierro;
+\item pérdidas dependientes de frecuencia;
+\item pérdidas mecánicas;
+\item pérdidas adicionales.
+\end{itemize}
+
+Cada mecanismo deberá incorporarse únicamente cuando exista una definición y parametrización trazables.
+
+\subsection{Efectos térmicos}
+
+La temperatura modifica parámetros eléctricos y electromagnéticos.
+
+En el proyecto ya existen datos térmicos almacenados como información de trazabilidad, pero M4 no constituye todavía un modelo térmico completo.
+
+Una evolución futura puede representar:
+
+\begin{equation}
+R_s=R_s(T)
+\end{equation}
+
+y, cuando exista evidencia suficiente:
+
+\begin{equation}
+\lambda_m=\lambda_m(T).
+\end{equation}
+
+La extensión térmica deberá conservar las condiciones térmicas bajo las cuales fueron definidos los datos del fabricante.
+
+\subsection{Relación con la máquina Siemens}
+
+La evolución de fidelidad debe permanecer vinculada a la máquina de referencia.
+
+Los datos documentales del fabricante constituyen una referencia externa para parámetros, límites y curvas de operación.
+
+La validación futura podrá comparar el modelo contra regiones documentadas de velocidad, torque y corriente.
+
+La comparación deberá conservar las condiciones correspondientes al convertidor, temperatura y régimen de operación.
+
+\subsection{Curvas par--velocidad como referencia}
+
+Las curvas par--velocidad documentadas por Siemens constituyen una referencia relevante para evaluar el comportamiento global de la máquina.
+
+Estas curvas permiten comparar regiones como:
+
+\begin{itemize}
+\item operación continua;
+\item operación de sobrecarga;
+\item regiones de velocidad elevada;
+\item límites de torque;
+\item condiciones asociadas al enlace de continua.
+\end{itemize}
+
+Antes de digitalizar una curva deberá conservarse la condición correspondiente y la identificación documental.
+
+No se deben generar puntos de una curva únicamente por estimación visual cuando el objetivo sea utilizarla como dato de validación cuantitativa.
+
+Esta referencia podrá integrarse posteriormente como evidencia de trazabilidad física del Digital Twin, complementando las comparaciones internas entre niveles de fidelidad.
+
+\subsection{Relación con el Digital Twin}
+
+El Digital Twin se plantea como una arquitectura evolutiva en la que diferentes representaciones de la planta pueden coexistir o utilizarse según el propósito de simulación, manteniendo una relación trazable con la máquina física.
+
+Por ello, el Digital Twin no debe entenderse como un modelo posterior único al que se llega después de una secuencia obligatoria de representaciones.
+
+La relación conceptual es:
+
+\begin{equation}
+\boxed{
+\begin{array}{c}
+\text{Máquina física}
+\\[2mm]
+\downarrow
+\\
+\text{Planta PMSM trazable}
+\\[2mm]
+\begin{array}{ccc}
+\swarrow & & \searrow \\
+\text{M4} & & \text{FEM / alta fidelidad} \\
+\downarrow & & \downarrow \\
+\text{mapas / no lineal} & & \text{mapas / ROM}
+\end{array}
+\\[2mm]
+\downarrow
+\\
+\text{Arquitectura Digital Twin}
+\end{array}
+}
+\end{equation}
+
+Esta organización permite que M4 continúe siendo la referencia computacional reproducible mientras se desarrollan representaciones de mayor fidelidad.
+
+El término Digital Twin representa, por tanto, una arquitectura y una relación trazable con la planta física, no simplemente la ejecución de un archivo de simulación.
+
+\subsection{Interfaces de planta}
+
+La evolución interna de la planta deberá preservar, cuando sea posible, las interfaces ya establecidas.
+
+Actualmente se dispone de:
+
+\begin{equation}
+u_{\mathrm{planta}}
+=
+[v_a,v_b,v_c,T_{\mathrm{load}},\theta_m]
+\end{equation}
+
+y:
+
+\begin{equation}
+y_{\mathrm{planta}}
+=
+[i_a,i_b,i_c,i_d,i_q,\omega_m,\theta_m,T_e].
+\end{equation}
+
+El objetivo es que la sustitución de M4 por una representación de mayor fidelidad no obligue a reconstruir toda la arquitectura de control.
+
+Si un nivel posterior requiere nuevas variables, estas deberán introducirse mediante contratos definidos y trazables.
+
+\subsection{Contratos entre niveles de fidelidad}
+
+La arquitectura de contratos también aplica a la evolución de la planta.
+
+Un nivel de fidelidad no deberá acceder de manera implícita a datos internos de otro nivel.
+
+La estructura conceptual es:
+
+\begin{equation}
+\mathrm{control}
+\rightarrow
+\mathrm{contrato}
+\rightarrow
+\mathrm{planta}
+\rightarrow
+\mathrm{contrato}
+\rightarrow
+\mathrm{realimentación}.
+\end{equation}
+
+De esta forma, M4, una representación basada en mapas o un ROM pueden ocupar una frontera de planta compatible siempre que implementen el contrato correspondiente.
+
+\subsection{FOC, MPC y capas inteligentes}
+
+La evolución de la planta debe ser independiente de la elección del controlador.
+
+FOC constituye actualmente el controlador funcional de referencia del proyecto.
+
+MPC representa una estrategia de control posterior que podrá utilizar la planta para optimización y predicción.
+
+ANFIS se mantiene como capa supervisora, adaptativa o predictiva y no como sustituto de FOC.
+
+TinyML representa una posible capa inteligente futura.
+
+Una planta con mayor fidelidad deberá poder utilizarse para estudiar estas estrategias sin modificar sus parámetros físicos de forma silenciosa.
+
+\subsection{Validación cruzada entre niveles}
+
+Una estrategia de validación futura consiste en ejecutar condiciones equivalentes sobre diferentes niveles de fidelidad.
+
+Por ejemplo:
+
+\begin{equation}
+\mathrm{M4}
+\leftrightarrow
+\mathrm{mapas}
+\leftrightarrow
+\mathrm{ROM}
+\leftrightarrow
+\mathrm{referencia\ FEM}.
+\end{equation}
+
+Las diferencias podrán analizarse en función de:
+
+\begin{itemize}
+\item corriente;
+\item torque;
+\item velocidad;
+\item flujo;
+\item potencia;
+\item energía;
+\item tiempo de cálculo.
+\end{itemize}
+
+Esta comparación permitirá identificar qué fenómenos son relevantes para cada objetivo de simulación.
+
+\subsection{Reproducibilidad}
+
+Cada nivel de fidelidad deberá conservar una configuración reproducible.
+
+Como mínimo deberán registrarse:
+
+\begin{itemize}
+\item versión del código;
+\item parámetros;
+\item dataset;
+\item mapas;
+\item geometría, cuando corresponda;
+\item solver;
+\item condiciones iniciales;
+\item entradas;
+\item paso de integración;
+\item método de interpolación;
+\item métricas de validación;
+\item hash de los artefactos.
+\end{itemize}
+
+Esta información permitirá distinguir entre cambios de planta, cambios de controlador y cambios exclusivamente experimentales.
+
+\subsection{Estado actual de la evolución}
+
+El estado actual puede resumirse de la siguiente manera:
+
+\begin{itemize}
+\item M4 es la planta activa y reproducible;
+\item existen estructuras electromagnéticas recuperadas;
+\item los mapas recuperados permanecen pendientes de verificación;
+\item el modelo no lineal está preparado como etapa futura, pero no está implementado como camino activo;
+\item no existe actualmente un solver FEM activo en Python;
+\item ROM constituye una etapa futura de reducción;
+\item la arquitectura del Digital Twin se diseña para admitir progresivamente estos diferentes niveles de representación.
+\end{itemize}
+
+Esta separación permite continuar el desarrollo sin presentar como terminado aquello que todavía se encuentra en investigación.
+
+\subsection{Criterio de transición entre niveles}
+
+La transición de un nivel al siguiente deberá realizarse cuando el nuevo nivel pueda demostrar una ventaja física o metodológica verificable.
+
+En términos generales:
+
+\begin{equation}
+\mathrm{nuevo\ nivel}
+\Rightarrow
+\mathrm{nueva\ informaci\acute{o}n}
++
+\mathrm{verificaci\acute{o}n}
++
+\mathrm{reproducibilidad}.
+\end{equation}
+
+Agregar código sin agregar información física o capacidad de validación no constituye por sí mismo un incremento de fidelidad.
+
+\subsection{Cierre del capítulo}
+
+La evolución hacia modelos no lineales, FEM y ROM constituye la ruta mediante la cual la planta PMSM puede incorporar progresivamente mayor contenido físico y diferentes niveles de resolución computacional.
+
+M4 permanece como referencia activa porque proporciona una realización reproducible y trazable de la planta sobre la cual pueden compararse las representaciones posteriores.
+
+Los mapas electromagnéticos recuperados representan una fuente potencial para enriquecer la representación de la planta. El modelo no lineal podrá utilizar esta información una vez verificados sus ejes, unidades, procedencia y coherencia física.
+
+FEM podrá utilizarse posteriormente como referencia de mayor fidelidad y como fuente de datos para construir o contrastar mapas y representaciones reducidas. El ROM permitirá estudiar modelos de mayor riqueza física con un costo computacional compatible con experimentos de control, siempre que su error y dominio de validez sean conocidos.
+
+La arquitectura resultante no depende de una única cadena de modelos. Se basa en una planta PMSM físicamente trazada que puede incorporar progresivamente diferentes niveles de representación y que, finalmente, puede integrarse dentro del Digital Twin.
+
+La regla fundamental permanece:
+
+\begin{equation}
+\boxed{
+\text{mayor fidelidad física}
++
+\text{trazabilidad}
++
+\text{reproducibilidad}
++
+\text{interfaces estables}
+}
+\end{equation}
+
+De esta manera, la evolución de la planta aumenta su contenido físico sin perder la separación entre planta, accionamiento y control.

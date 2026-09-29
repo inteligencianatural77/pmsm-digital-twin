@@ -238,3 +238,6 @@ P8  ANFIS / no linealidades avanzadas      [PENDIENTE]
 ```
 
 El directorio `pmsm_hybrid_control/` permanece fuera del conjunto rastreado de este repositorio en esta etapa y no forma parte del experimento reproducible descrito aquí.
+
+
+

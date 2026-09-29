@@ -1,0 +1,1442 @@
+\section{Formulación matemática de la planta PMSM}
+
+\subsection{Propósito de la formulación matemática}
+
+La formulación matemática constituye el vínculo entre la máquina física de referencia y la implementación computacional de la planta PMSM. Su función no es únicamente proporcionar un conjunto de ecuaciones para ejecutar una simulación, sino establecer de manera explícita cómo los fenómenos físicos de la máquina se traducen en variables, relaciones matemáticas, estados y entradas que pueden ser implementados en software.
+
+La formulación utilizada en este trabajo parte de la descripción de una máquina eléctrica trifásica con imanes permanentes y conduce progresivamente hacia una representación en coordenadas rotantes $dq$. Esta representación permite separar de manera conveniente las componentes asociadas a los ejes magnéticos de la máquina y construir un modelo compacto de sus dinámicas eléctrica, electromagnética y mecánica.
+
+El proceso puede resumirse conceptualmente como:
+
+\begin{equation}
+\begin{aligned}
+\text{fenómeno físico}
+&\rightarrow \text{ley física}
+\rightarrow \text{variable matemática}
+\\
+&\rightarrow \text{ecuación}
+\rightarrow \text{modelo de estados}
+\rightarrow \text{implementación}.
+\end{aligned}
+\end{equation}
+
+La formulación actual corresponde al nivel concentrado M4. Por tanto, sus parámetros electromagnéticos se consideran constantes dentro de este nivel y no se introducen todavía dependencias explícitas de saturación, posición angular, temperatura, armónicos espaciales o mapas obtenidos mediante FEM.
+
+Esta decisión no pretende representar de manera definitiva todos los fenómenos de la máquina real. Su objetivo es establecer una base matemática coherente y trazable que pueda evolucionar posteriormente hacia representaciones de mayor fidelidad.
+
+\subsection{Origen físico del modelo}
+
+La planta se origina en una máquina PMSM trifásica de referencia Siemens 1FT7087. La información documental de la máquina proporciona magnitudes como resistencia de devanado, inductancia, constante de par, constante de tensión, velocidad, corriente, número de polos e inercia.
+
+Sin embargo, los datos de catálogo no constituyen por sí mismos un modelo dinámico completo. Para obtener una planta ejecutable es necesario establecer las relaciones que gobiernan la evolución de las variables eléctricas y mecánicas.
+
+La formulación se construye a partir de tres dominios físicos principales:
+
+\begin{enumerate}
+    \item dominio eléctrico;
+    \item dominio electromagnético;
+    \item dominio mecánico.
+\end{enumerate}
+
+Estos dominios están acoplados.
+
+Las tensiones aplicadas producen corrientes; las corrientes producen enlaces de flujo y par electromagnético; el par produce aceleración mecánica; la velocidad mecánica modifica a su vez los términos eléctricos mediante la velocidad eléctrica.
+
+Por ello, la planta no puede tratarse como tres modelos independientes. Su comportamiento surge de la interacción entre ellos.
+
+El acoplamiento fundamental puede representarse como:
+
+\begin{equation}
+(v_a,v_b,v_c)
+\rightarrow
+(i_a,i_b,i_c)
+\rightarrow
+(\psi,T_e)
+\rightarrow
+\omega_m
+\rightarrow
+\theta_m.
+\end{equation}
+
+A su vez, la posición y velocidad del rotor regresan al dominio eléctrico mediante:
+
+\begin{equation}
+\theta_e=p\theta_m,
+\qquad
+\omega_e=p\omega_m.
+\end{equation}
+
+Esta realimentación física constituye una de las características fundamentales del modelo PMSM.
+
+\subsection{Variables eléctricas trifásicas}
+
+La máquina posee tres fases eléctricas, convencionalmente identificadas como $a$, $b$ y $c$.
+
+Las variables de tensión y corriente pueden expresarse como:
+
+\begin{equation}
+\mathbf{v}_{abc}
+=
+\begin{bmatrix}
+v_a\\
+v_b\\
+v_c
+\end{bmatrix},
+\qquad
+\mathbf{i}_{abc}
+=
+\begin{bmatrix}
+i_a\\
+i_b\\
+i_c
+\end{bmatrix}.
+\end{equation}
+
+De forma equivalente, los enlaces de flujo pueden representarse mediante:
+
+\begin{equation}
+\boldsymbol{\psi}_{abc}
+=
+\begin{bmatrix}
+\psi_a\\
+\psi_b\\
+\psi_c
+\end{bmatrix}.
+\end{equation}
+
+La descripción directa en coordenadas $abc$ conserva la naturaleza trifásica de la máquina, pero genera ecuaciones con una dependencia angular que resulta menos conveniente para el análisis y control.
+
+Por esta razón se realiza una transformación de coordenadas.
+
+La representación utilizada en la planta es:
+
+\begin{equation}
+abc
+\rightarrow
+\alpha\beta
+\rightarrow
+dq.
+\end{equation}
+
+El paso por $\alpha\beta$ transforma las tres variables de fase en dos componentes ortogonales en un marco estacionario. Posteriormente, la transformación de Park lleva esas componentes a un marco que gira con el rotor.
+
+El objetivo no es alterar la física de la máquina, sino cambiar la base matemática utilizada para describirla.
+
+\subsection{Ley fundamental de tensión}
+
+El punto de partida para la dinámica eléctrica es la relación entre tensión, resistencia y enlace de flujo.
+
+Para una fase, la relación básica puede escribirse como:
+
+\begin{equation}
+v=Ri+\frac{d\psi}{dt}.
+\end{equation}
+
+Esta expresión contiene dos contribuciones principales.
+
+La primera es la caída resistiva:
+
+\begin{equation}
+v_R=Ri.
+\end{equation}
+
+La segunda es la tensión asociada a la variación temporal del enlace de flujo:
+
+\begin{equation}
+v_{\psi}=\frac{d\psi}{dt}.
+\end{equation}
+
+La expresión completa puede interpretarse, por tanto, como el resultado de aplicar una tensión que debe vencer tanto la caída resistiva de los devanados como la fuerza electromotriz asociada a la variación de los enlaces de flujo.
+
+Para una máquina trifásica, esta relación se aplica a las tres fases. Sin embargo, cuando el sistema se expresa en coordenadas rotantes, la derivada de los enlaces de flujo debe considerar también el movimiento del sistema de referencia.
+
+Este hecho dará origen a los términos de acoplamiento asociados a $\omega_e$ en las ecuaciones $dq$.
+
+\subsection{Enlaces de flujo de la PMSM}
+
+En el nivel M4, los enlaces de flujo en el marco $dq$ se representan mediante:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m
+\end{equation}
+
+y:
+
+\begin{equation}
+\psi_q=L_qi_q.
+\end{equation}
+
+La primera expresión contiene dos contribuciones.
+
+La primera es el flujo asociado a la corriente del eje $d$:
+
+\begin{equation}
+\psi_{d,i}=L_di_d.
+\end{equation}
+
+La segunda corresponde al flujo producido por los imanes permanentes:
+
+\begin{equation}
+\psi_{d,PM}=\lambda_m.
+\end{equation}
+
+Por tanto:
+
+\begin{equation}
+\psi_d
+=
+\psi_{d,i}
++
+\psi_{d,PM}.
+\end{equation}
+
+En el modelo M4, el flujo permanente se representa mediante un único parámetro constante $\lambda_m$.
+
+La componente $q$ se representa como:
+
+\begin{equation}
+\psi_q=L_qi_q.
+\end{equation}
+
+Esta formulación constituye un modelo concentrado. En una representación de mayor fidelidad, los enlaces de flujo podrían expresarse como funciones de las corrientes y de la posición del rotor:
+
+\begin{equation}
+\psi_d
+=
+\psi_d(i_d,i_q,\theta_e,T,\ldots)
+\end{equation}
+
+y:
+
+\begin{equation}
+\psi_q
+=
+\psi_q(i_d,i_q,\theta_e,T,\ldots).
+\end{equation}
+
+Estas expresiones más generales constituyen precisamente el camino hacia los mapas electromagnéticos y los modelos no lineales.
+
+\subsection{Transformación Clarke}
+
+La transformación de Clarke convierte las variables trifásicas $abc$ en un sistema ortogonal estacionario $\alpha\beta$.
+
+Para las corrientes, la implementación utiliza una representación equivalente en la que:
+
+\begin{equation}
+i_\alpha=i_a
+\end{equation}
+
+y:
+
+\begin{equation}
+i_\beta=
+\frac{i_b-i_c}{\sqrt{3}}.
+\end{equation}
+
+La misma idea puede aplicarse a otras variables trifásicas.
+
+La transformación reduce la descripción de tres componentes de fase a dos componentes ortogonales, bajo las condiciones de balance apropiadas para la representación utilizada.
+
+El plano $\alpha\beta$ permanece fijo respecto al estator. Por ello, todavía no incorpora la rotación del rotor.
+
+Conceptualmente:
+
+\begin{equation}
+abc
+\rightarrow
+\alpha\beta
+\end{equation}
+
+cambia la base de representación, pero no introduce todavía el movimiento del sistema de coordenadas asociado al rotor.
+
+\subsection{Transformación Park}
+
+La transformación de Park lleva las variables $\alpha\beta$ a un marco de referencia rotante $dq$.
+
+De manera conceptual:
+
+\begin{equation}
+\alpha\beta
+\rightarrow
+dq.
+\end{equation}
+
+El ángulo utilizado para esta transformación es el ángulo eléctrico:
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+La razón de utilizar el ángulo eléctrico, en lugar del ángulo mecánico directamente, es que el campo electromagnético se relaciona con la periodicidad eléctrica de la máquina.
+
+La transformación puede representarse de manera general como:
+
+\begin{equation}
+\begin{bmatrix}
+i_d\\
+i_q
+\end{bmatrix}
+=
+\mathbf{T}(\theta_e)
+\begin{bmatrix}
+i_\alpha\\
+i_\beta
+\end{bmatrix}.
+\end{equation}
+
+La matriz $\mathbf{T}(\theta_e)$ depende del convenio de transformación seleccionado.
+
+Este punto es importante para la trazabilidad del modelo: diferentes convenciones de Clarke y Park pueden producir signos, factores de escala o definiciones de eje diferentes. Por ello, la transformación utilizada por el código debe considerarse parte de la definición del modelo y no una operación puramente intercambiable.
+
+En la implementación actual, la planta utiliza las funciones de transformación disponibles en el paquete de control para realizar la conversión entre los marcos correspondientes.
+
+\subsection{\texorpdfstring{Significado físico de los ejes $d$ y $q$}{Significado físico de los ejes d y q}}
+
+Una vez realizado el cambio de coordenadas, las variables eléctricas se expresan respecto a un marco asociado al rotor.
+
+El eje $d$ se alinea con la referencia magnética principal del rotor y, en el modelo utilizado, contiene la contribución del flujo de los imanes permanentes.
+
+El eje $q$ es ortogonal al eje $d$ y participa directamente en la producción del par electromagnético.
+
+Esta separación permite interpretar el comportamiento de la máquina mediante dos componentes de corriente:
+
+\begin{equation}
+i_d
+\quad\text{y}\quad
+i_q.
+\end{equation}
+
+En un modelo PMSM simplificado con $L_d=L_q$, la relación entre el par y la corriente $q$ se vuelve particularmente directa.
+
+Sin embargo, esta interpretación no debe llevar a concluir que $i_d$ carezca de importancia en una máquina real. En presencia de saliencia, saturación, límites de tensión, debilitamiento de campo y otros fenómenos, la componente $d$ puede desempeñar un papel fundamental.
+
+\subsection{Velocidad mecánica y velocidad eléctrica}
+
+La máquina posee una velocidad mecánica $\omega_m$ y una velocidad eléctrica $\omega_e$.
+
+La relación entre ambas está determinada por el número de pares de polos:
+
+\begin{equation}
+\omega_e=p\omega_m.
+\end{equation}
+
+Para la máquina de referencia se tiene:
+
+\begin{equation}
+2p=8,
+\end{equation}
+
+por lo que:
+
+\begin{equation}
+p=4.
+\end{equation}
+
+En consecuencia:
+
+\begin{equation}
+\omega_e=4\omega_m.
+\end{equation}
+
+De forma equivalente, la posición eléctrica es:
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+Estas relaciones son fundamentales porque conectan la dinámica mecánica con las ecuaciones eléctricas.
+
+Un incremento de velocidad mecánica produce un incremento de velocidad eléctrica y, por tanto, modifica los términos de fuerza electromotriz y acoplamiento presentes en el modelo $dq$.
+
+\subsection{\texorpdfstring{Obtención de las ecuaciones eléctricas en $dq$}{Obtención de las ecuaciones eléctricas en dq}}
+
+Partiendo de la relación general:
+
+\begin{equation}
+v=Ri+\frac{d\psi}{dt},
+\end{equation}
+
+la transformación al marco rotante introduce términos asociados a la velocidad angular eléctrica.
+
+Las ecuaciones de tensión en coordenadas $dq$ pueden expresarse como:
+
+\begin{equation}
+v_d
+=
+R_si_d
++
+\frac{d\psi_d}{dt}
+-
+\omega_e\psi_q
+\end{equation}
+
+y:
+
+\begin{equation}
+v_q
+=
+R_si_q
++
+\frac{d\psi_q}{dt}
++
+\omega_e\psi_d.
+\end{equation}
+
+Los términos:
+
+\begin{equation}
+-\omega_e\psi_q
+\end{equation}
+
+y:
+
+\begin{equation}
++\omega_e\psi_d
+\end{equation}
+
+aparecen debido al hecho de que el sistema de coordenadas $dq$ está girando.
+
+No constituyen pérdidas adicionales ni componentes externas. Son términos cinemáticos que aparecen al expresar las leyes eléctricas en un sistema de referencia rotante.
+
+\subsection{Sustitución de los enlaces de flujo}
+
+Utilizando:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m
+\end{equation}
+
+y:
+
+\begin{equation}
+\psi_q=L_qi_q,
+\end{equation}
+
+la derivada del enlace de flujo del eje $d$ queda:
+
+\begin{equation}
+\frac{d\psi_d}{dt}
+=
+L_d\frac{di_d}{dt}
+\end{equation}
+
+cuando $L_d$ y $\lambda_m$ se consideran constantes.
+
+De forma equivalente:
+
+\begin{equation}
+\frac{d\psi_q}{dt}
+=
+L_q\frac{di_q}{dt}.
+\end{equation}
+
+Sustituyendo estas relaciones en las ecuaciones de tensión se obtiene:
+
+\begin{equation}
+v_d
+=
+R_si_d
++
+L_d\frac{di_d}{dt}
+-
+\omega_eL_qi_q
+\end{equation}
+
+y:
+
+\begin{equation}
+v_q
+=
+R_si_q
++
+L_q\frac{di_q}{dt}
++
+\omega_e
+\left(
+L_di_d+\lambda_m
+\right).
+\end{equation}
+
+Estas son las ecuaciones eléctricas utilizadas como base de la implementación M4.
+
+\subsection{Forma diferencial de las corrientes}
+
+Despejando las derivadas de las corrientes:
+
+\begin{equation}
+\frac{di_d}{dt}
+=
+\frac{
+v_d-R_si_d+\omega_eL_qi_q
+}{L_d}
+\end{equation}
+
+y:
+
+\begin{equation}
+\frac{di_q}{dt}
+=
+\frac{
+v_q-R_si_q-\omega_e(L_di_d+\lambda_m)
+}{L_q}.
+\end{equation}
+
+Estas expresiones son directamente implementables en una simulación temporal.
+
+Además, muestran explícitamente los principales acoplamientos de la máquina.
+
+La ecuación del eje $d$ contiene el término:
+
+\begin{equation}
++\omega_eL_qi_q,
+\end{equation}
+
+mientras que la ecuación del eje $q$ contiene:
+
+\begin{equation}
+-\omega_e(L_di_d+\lambda_m).
+\end{equation}
+
+Por esta razón, las dinámicas de $i_d$ e $i_q$ no son completamente independientes.
+
+Esta interacción constituye una de las razones por las que el control de corriente de una PMSM requiere compensar los términos de acoplamiento cuando se busca un comportamiento desacoplado.
+
+\subsection{Fuerza electromotriz y flujo permanente}
+
+El término:
+
+\begin{equation}
+\omega_e\lambda_m
+\end{equation}
+
+que aparece en la ecuación del eje $q$ representa la contribución asociada al flujo de los imanes permanentes cuando el rotor gira.
+
+Este término puede interpretarse como parte de la fuerza electromotriz asociada al movimiento del flujo permanente respecto a los devanados.
+
+Por ello, el flujo permanente no es simplemente un parámetro estático sin efecto dinámico. Su presencia modifica directamente la tensión requerida para mantener determinadas corrientes cuando la máquina gira.
+
+A medida que aumenta $\omega_e$, también aumenta la magnitud del término:
+
+\begin{equation}
+\omega_e\lambda_m.
+\end{equation}
+
+Esta relación es fundamental para comprender posteriormente los límites de tensión y la necesidad de estrategias como debilitamiento de campo en regiones de alta velocidad.
+
+\subsection{Obtención del flujo permanente a partir de la constante de par}
+
+El valor de $\lambda_m$ utilizado actualmente por M4 no procede directamente de una tabla que publique explícitamente el enlace de flujo del imán.
+
+Se obtiene a partir de la constante de par documentada para la máquina.
+
+La documentación de referencia proporciona:
+
+\begin{equation}
+k_T=0.91\;\mathrm{N\,m/A}
+\end{equation}
+
+y el número de pares de polos:
+
+\begin{equation}
+p=4.
+\end{equation}
+
+Para la convención utilizada en este modelo, la relación empleada es:
+
+\begin{equation}
+k_T
+=
+\frac{3}{2}\sqrt{2}\,p\,\lambda_m.
+\end{equation}
+
+Despejando:
+
+\begin{equation}
+\lambda_m
+=
+\frac{k_T}
+{\frac{3}{2}\sqrt{2}\,p}.
+\end{equation}
+
+Sustituyendo los valores:
+
+\begin{equation}
+\lambda_m
+=
+\frac{0.91}
+{\frac{3}{2}\sqrt{2}(4)}.
+\end{equation}
+
+Se obtiene aproximadamente:
+
+\begin{equation}
+\boxed{
+\lambda_m\approx0.107245\;\mathrm{Wb}
+}
+\end{equation}
+
+Este valor es el utilizado actualmente por la planta M4.
+
+Es importante distinguir entre una magnitud documentada directamente y una magnitud derivada. La documentación proporciona $k_T$, mientras que $\lambda_m$ se obtiene mediante una relación matemática dependiente de la convención de corriente y del modelo adoptado.
+
+Por esta razón, aunque el valor numérico esté incorporado en M4 como confirmado, su procedencia se mantiene identificada como derivada y su trazabilidad documental continúa marcada para verificación.
+
+\subsection{Comprobación independiente mediante la constante de tensión}
+
+La documentación de la máquina también proporciona una constante de tensión:
+
+\begin{equation}
+k_E=58\;\mathrm{V/(1000\,rpm)}
+\end{equation}
+
+a 20\,${}^{\circ}$C.
+
+Esta magnitud ofrece una segunda referencia para estudiar el flujo equivalente de la máquina.
+
+Sin embargo, la conversión entre $k_E$ y $\lambda_m$ depende de la convención empleada para distinguir tensión de fase, tensión de línea, valores RMS, valores pico y velocidad angular eléctrica.
+
+Por ello, una comparación directa entre $k_T$ y $k_E$ sin considerar sus convenciones puede generar discrepancias aparentes.
+
+La constante $k_E$ proporciona aproximadamente una segunda estimación del flujo equivalente, pero no se utiliza actualmente para sustituir el valor M4 derivado de $k_T$.
+
+La diferencia observada entre ambas estimaciones se conserva como parte de la trazabilidad y deberá analizarse posteriormente considerando las condiciones de ensayo, temperatura, tolerancias documentadas y convenciones de magnitud.
+
+Este tratamiento evita forzar una coincidencia numérica artificial entre dos magnitudes que pueden haber sido especificadas bajo condiciones diferentes.
+
+\subsection{Obtención del par electromagnético}
+
+El par electromagnético de una PMSM puede expresarse en el marco $dq$ mediante:
+
+\begin{equation}
+T_e
+=
+\frac{3}{2}p
+\left(
+\psi_di_q-\psi_qi_d
+\right).
+\end{equation}
+
+Esta expresión relaciona directamente los enlaces de flujo con las corrientes y permite representar tanto la contribución asociada a los imanes permanentes como la contribución de reluctancia.
+
+Sustituyendo:
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m
+\end{equation}
+
+y:
+
+\begin{equation}
+\psi_q=L_qi_q,
+\end{equation}
+
+se obtiene:
+
+\begin{equation}
+T_e
+=
+\frac{3}{2}p
+\left[
+(L_di_d+\lambda_m)i_q
+-
+L_qi_qi_d
+\right].
+\end{equation}
+
+Reordenando:
+
+\begin{equation}
+T_e
+=
+\frac{3}{2}p
+\left[
+\lambda_mi_q
++
+(L_d-L_q)i_di_q
+\right].
+\end{equation}
+
+Esta forma permite identificar dos contribuciones:
+
+\begin{equation}
+T_{PM}
+=
+\frac{3}{2}p\lambda_mi_q
+\end{equation}
+
+y:
+
+\begin{equation}
+T_{rel}
+=
+\frac{3}{2}p(L_d-L_q)i_di_q.
+\end{equation}
+
+Por tanto:
+
+\begin{equation}
+T_e=T_{PM}+T_{rel}.
+\end{equation}
+
+La primera contribución está asociada al flujo de los imanes permanentes. La segunda corresponde al par de reluctancia producido por la diferencia entre las inductancias de los ejes $d$ y $q$.
+
+\subsection{\texorpdfstring{Consecuencia de la parametrización $L_d=L_q$}{Consecuencia de la parametrización Ld = Lq}}
+
+El modelo M4 utiliza actualmente:
+
+\begin{equation}
+L_d=L_q=1.2\;\mathrm{mH}.
+\end{equation}
+
+Por tanto:
+
+\begin{equation}
+L_d-L_q=0.
+\end{equation}
+
+La contribución de reluctancia queda anulada dentro de este modelo:
+
+\begin{equation}
+T_{rel}=0.
+\end{equation}
+
+En consecuencia:
+
+\begin{equation}
+\boxed{
+T_e=
+\frac{3}{2}p\lambda_mi_q
+}
+\end{equation}
+
+para la parametrización M4 actual.
+
+Esta simplificación debe interpretarse correctamente.
+
+No significa que una PMSM real necesariamente tenga:
+
+\begin{equation}
+L_d=L_q.
+\end{equation}
+
+Tampoco significa que una máquina real carezca de saliencia o de efectos de saturación.
+
+Significa únicamente que el primer nivel de la planta utiliza un modelo concentrado en el cual se han establecido ambas inductancias con el mismo valor.
+
+Cuando se disponga de información suficiente para construir:
+
+\begin{equation}
+L_d=L_d(i_d,i_q,\theta_e)
+\end{equation}
+
+y:
+
+\begin{equation}
+L_q=L_q(i_d,i_q,\theta_e),
+\end{equation}
+
+la contribución de reluctancia podrá reaparecer de forma dependiente del estado y de la posición.
+
+\subsection{Dinámica mecánica}
+
+La parte mecánica se obtiene mediante el balance de torques.
+
+El principio básico es:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+\sum T.
+\end{equation}
+
+En la representación M4 actual se consideran el par electromagnético y el par de carga:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+T_e-T_{\mathrm{load}}.
+\end{equation}
+
+Despejando:
+
+\begin{equation}
+\frac{d\omega_m}{dt}
+=
+\frac{T_e-T_{\mathrm{load}}}{J}.
+\end{equation}
+
+La posición mecánica se obtiene integrando la velocidad:
+
+\begin{equation}
+\frac{d\theta_m}{dt}
+=
+\omega_m.
+\end{equation}
+
+Estas dos ecuaciones cierran el acoplamiento entre los dominios electromagnético y mecánico.
+
+El par generado por las corrientes modifica la velocidad y la velocidad modifica la frecuencia eléctrica utilizada por las ecuaciones de corriente.
+
+\subsection{Modelo mecánico y parámetros no incorporados}
+
+En una representación más completa, la ecuación mecánica podría incluir pérdidas dependientes de la velocidad y otros pares resistentes:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+T_e
+-
+T_{\mathrm{load}}
+-
+B\omega_m
+-
+T_{\mathrm{fric}}.
+\end{equation}
+
+Sin embargo, los parámetros $B$ y $T_{\mathrm{fric}}$ no se consideran confirmados en la parametrización M4.
+
+Por esta razón, la implementación actual utiliza:
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+T_e-T_{\mathrm{load}}.
+\end{equation}
+
+Esta decisión mantiene la trazabilidad del modelo y evita introducir valores históricos no verificados como si fueran propiedades confirmadas de la máquina.
+
+\subsection{Modelo completo de ecuaciones diferenciales}
+
+La planta M4 puede expresarse mediante el conjunto:
+
+\begin{equation}
+\frac{di_d}{dt}
+=
+\frac{
+v_d-R_si_d+p\omega_mL_qi_q
+}{L_d},
+\end{equation}
+
+\begin{equation}
+\frac{di_q}{dt}
+=
+\frac{
+v_q-R_si_q-p\omega_m(L_di_d+\lambda_m)
+}{L_q},
+\end{equation}
+
+\begin{equation}
+\frac{d\omega_m}{dt}
+=
+\frac{
+T_e-T_{\mathrm{load}}
+}{J},
+\end{equation}
+
+\begin{equation}
+\frac{d\theta_m}{dt}
+=
+\omega_m,
+\end{equation}
+
+con:
+
+\begin{equation}
+T_e
+=
+\frac{3}{2}p
+\left[
+\lambda_mi_q+
+(L_d-L_q)i_di_q
+\right].
+\end{equation}
+
+Estas ecuaciones constituyen el núcleo matemático de la planta concentrada utilizada en M4.
+
+\subsection{Formulación en espacio de estados}
+
+Para expresar la planta en forma de espacio de estados se define el vector:
+
+\begin{equation}
+x=
+\begin{bmatrix}
+i_d\\
+i_q\\
+\omega_m\\
+\theta_m
+\end{bmatrix}.
+\end{equation}
+
+Las entradas dinámicas principales pueden definirse como:
+
+\begin{equation}
+u=
+\begin{bmatrix}
+v_d\\
+v_q\\
+T_{\mathrm{load}}
+\end{bmatrix}.
+\end{equation}
+
+El conjunto de parámetros puede escribirse como:
+
+\begin{equation}
+\Theta=
+\left\{
+R_s,L_d,L_q,\lambda_m,p,J
+\right\}.
+\end{equation}
+
+La planta puede entonces representarse de manera general como:
+
+\begin{equation}
+\dot{x}=f(x,u,\Theta).
+\end{equation}
+
+En forma desarrollada:
+
+\begin{equation}
+\dot{x}
+=
+\begin{bmatrix}
+\dfrac{
+v_d-R_si_d+p\omega_mL_qi_q
+}{L_d}
+\\[10pt]
+\dfrac{
+v_q-R_si_q-p\omega_m(L_di_d+\lambda_m)
+}{L_q}
+\\[10pt]
+\dfrac{
+T_e-T_{\mathrm{load}}
+}{J}
+\\[10pt]
+\omega_m
+\end{bmatrix}.
+\end{equation}
+
+El vector de salida puede definirse, por ejemplo, como:
+
+\begin{equation}
+y=
+\begin{bmatrix}
+i_d\\
+i_q\\
+\omega_m\\
+\theta_m\\
+T_e
+\end{bmatrix}.
+\end{equation}
+
+Las corrientes trifásicas pueden calcularse adicionalmente mediante las transformaciones inversas:
+
+\begin{equation}
+(i_d,i_q,\theta_e)
+\rightarrow
+(i_\alpha,i_\beta)
+\rightarrow
+(i_a,i_b,i_c).
+\end{equation}
+
+Esta formulación permite identificar claramente qué variables pertenecen al estado interno de la planta y cuáles corresponden a entradas o salidas.
+
+\subsection{Relación entre el modelo matemático y la implementación Python}
+
+La formulación anterior se implementa en \texttt{PMSMBase} mediante cuatro estados internos:
+
+\begin{equation}
+(i_d,i_q,\omega_m,\theta_m).
+\end{equation}
+
+Las derivadas se calculan en el método interno de la planta y posteriormente se realiza la integración temporal.
+
+La correspondencia conceptual es directa:
+
+\begin{center}
+\begin{tabular}{ll}
+\textbf{Modelo matemático} & \textbf{Implementación} \\
+\hline
+$i_d$ & \texttt{\_id} \\
+$i_q$ & \texttt{\_iq} \\
+$\omega_m$ & \texttt{\_omega\_m} \\
+$\theta_m$ & \texttt{\_theta\_m} \\
+$T_e$ & \texttt{electromagnetic\_torque()} \\
+$\dot{x}$ & \texttt{\_derivatives()} \\
+$x_{k+1}$ & \texttt{step()} \\
+\end{tabular}
+\end{center}
+
+Esta correspondencia es importante para la reproducibilidad porque permite verificar que cada elemento matemático tenga una representación concreta dentro del código.
+
+La ecuación por sí sola no constituye todavía una planta ejecutable. La implementación requiere definir estados, entradas, condiciones iniciales, parámetros, transformaciones y método de integración.
+
+\subsection{Condiciones iniciales}
+
+La implementación M4 utiliza inicialmente:
+
+\begin{equation}
+i_d(0)=0,
+\end{equation}
+
+\begin{equation}
+i_q(0)=0,
+\end{equation}
+
+\begin{equation}
+\omega_m(0)=0,
+\end{equation}
+
+y:
+
+\begin{equation}
+\theta_m(0)=0.
+\end{equation}
+
+Estas condiciones corresponden al estado inicial empleado por la clase base de la planta.
+
+No deben confundirse con condiciones nominales de operación de la máquina.
+
+Los datos nominales del fabricante, como:
+
+\begin{equation}
+I_N=53\;\mathrm{A}
+\end{equation}
+
+y:
+
+\begin{equation}
+M_N=46\;\mathrm{N\,m},
+\end{equation}
+
+describen una condición de operación de referencia de la máquina y no constituyen automáticamente condiciones iniciales para la integración de la planta.
+
+Esta distinción permite separar la definición física de la máquina de la configuración específica de cada experimento.
+
+\subsection{Parámetros documentales, derivados y decisiones de modelado}
+
+La formulación matemática depende de tres tipos de información que deben mantenerse separados.
+
+\subsubsection{Parámetros documentales}
+
+Son magnitudes obtenidas directamente de la documentación de referencia o de fuentes primarias del proyecto.
+
+Entre ellas se encuentran:
+
+\begin{equation}
+R,
+\quad
+L_D,
+\quad
+k_T,
+\quad
+k_E,
+\quad
+J,
+\quad
+2p.
+\end{equation}
+
+Estos valores deben conservar la referencia documental correspondiente.
+
+\subsubsection{Parámetros derivados}
+
+Son magnitudes calculadas a partir de parámetros documentales y de una formulación explícita.
+
+Un ejemplo central es:
+
+\begin{equation}
+\lambda_m
+=
+\frac{k_T}
+{\frac{3}{2}\sqrt{2}p}.
+\end{equation}
+
+El valor resultante depende de la convención de modelado utilizada, por lo que su trazabilidad debe conservar tanto la fuente original como la ecuación empleada.
+
+\subsubsection{Decisiones de modelado}
+
+Son decisiones necesarias para construir una representación ejecutable cuando la documentación disponible no proporciona directamente toda la información requerida.
+
+En M4, un ejemplo importante es:
+
+\begin{equation}
+L_d=L_q=1.2\;\mathrm{mH}.
+\end{equation}
+
+La documentación proporciona una inductancia $L_D$, pero no establece en el material utilizado una pareja independiente de valores $L_d$ y $L_q$. Por ello, la igualdad se utiliza como decisión de modelado para el nivel concentrado actual.
+
+Esta clasificación evita presentar una hipótesis de modelado como si fuera un dato físico medido directamente.
+
+\subsection{Supuestos del nivel M4}
+
+La formulación actual se apoya en varios supuestos explícitos:
+
+\begin{enumerate}
+    \item $R_s$ se considera constante;
+    \item $L_d$ y $L_q$ se consideran constantes;
+    \item el flujo permanente $\lambda_m$ se considera constante;
+    \item no se representa explícitamente la saturación magnética;
+    \item no se representan armónicos espaciales;
+    \item no se introduce dependencia angular de los enlaces de flujo;
+    \item no se introducen pérdidas electromagnéticas detalladas;
+    \item $B$ y $T_{\mathrm{fric}}$ no forman parte de la dinámica M4;
+    \item la temperatura no modifica todavía los parámetros durante la simulación;
+    \item la máquina se representa mediante un modelo concentrado.
+\end{enumerate}
+
+Estos supuestos delimitan exactamente qué significa el modelo M4.
+
+Por tanto, cuando una simulación reproduce una determinada respuesta, dicha respuesta corresponde al conjunto de ecuaciones y supuestos definidos aquí, no necesariamente a todos los fenómenos presentes en la máquina física.
+
+\subsection{Qué fenómenos aparecen al aumentar la fidelidad}
+
+Una máquina real puede presentar dependencias más generales:
+
+\begin{equation}
+\psi_d
+=
+\psi_d(i_d,i_q,\theta_e,T),
+\end{equation}
+
+\begin{equation}
+\psi_q
+=
+\psi_q(i_d,i_q,\theta_e,T),
+\end{equation}
+
+y:
+
+\begin{equation}
+T_e
+=
+T_e(i_d,i_q,\theta_e,T).
+\end{equation}
+
+En este caso, las inductancias dejan de ser necesariamente constantes:
+
+\begin{equation}
+L_d
+=
+L_d(i_d,i_q,\theta_e,T)
+\end{equation}
+
+y:
+
+\begin{equation}
+L_q
+=
+L_q(i_d,i_q,\theta_e,T).
+\end{equation}
+
+También pueden aparecer armónicos, pérdidas dependientes de la velocidad y la frecuencia, variaciones térmicas y efectos geométricos.
+
+La transición hacia estas representaciones no consiste simplemente en añadir términos arbitrarios a las ecuaciones actuales. Requiere disponer de información física suficiente para identificar las nuevas dependencias.
+
+Por ello, el siguiente nivel natural del proyecto es la construcción de mapas electromagnéticos.
+
+\subsection{Relación con los mapas electromagnéticos}
+
+En un modelo basado en mapas, los enlaces de flujo pueden representarse mediante superficies o tablas:
+
+\begin{equation}
+\psi_d=f_d(i_d,i_q,\theta_e)
+\end{equation}
+
+y:
+
+\begin{equation}
+\psi_q=f_q(i_d,i_q,\theta_e).
+\end{equation}
+
+El par puede obtenerse entonces de la relación electromagnética correspondiente o de un mapa:
+
+\begin{equation}
+T_e=f_T(i_d,i_q,\theta_e).
+\end{equation}
+
+Esta representación permite introducir no linealidades que el modelo concentrado no puede reproducir.
+
+Sin embargo, una tabla recuperada de una fuente histórica no debe activarse automáticamente como si fuera un mapa validado. Es necesario determinar:
+
+\begin{itemize}
+    \item qué variable representa cada eje;
+    \item qué unidades utiliza;
+    \item qué sistema de referencia corresponde;
+    \item qué condiciones de temperatura se aplicaron;
+    \item qué rango de corriente representa;
+    \item si existe dependencia angular;
+    \item cuál es su procedencia;
+    \item qué método se utilizó para obtenerla.
+\end{itemize}
+
+La construcción de mapas constituye por tanto una etapa de identificación y validación, no solamente una tarea de programación.
+
+\subsection{Relación con FEM y ROM}
+
+Los modelos FEM permiten obtener información espacialmente distribuida del campo electromagnético a partir de la geometría y materiales de la máquina.
+
+Una eventual cadena de construcción puede representarse como:
+
+\begin{equation}
+\text{geometría}
+\rightarrow
+\text{materiales}
+\rightarrow
+\text{FEM}
+\rightarrow
+\text{soluciones electromagnéticas}
+\rightarrow
+\text{mapas}
+\rightarrow
+\text{ROM}.
+\end{equation}
+
+El modelo reducido, o ROM, puede utilizar posteriormente la información obtenida mediante FEM sin requerir resolver el problema electromagnético completo durante cada paso de una simulación de control.
+
+En este contexto, el modelo M4 no compite con FEM. Constituye el nivel inicial sobre el cual se puede establecer la evolución de fidelidad.
+
+\subsection{Separación entre formulación de planta y formulación del controlador}
+
+Las ecuaciones obtenidas en este capítulo describen la planta.
+
+El controlador utiliza estas relaciones para decidir las acciones que deben aplicarse, pero sus ecuaciones no forman parte de la dinámica física de la máquina.
+
+Por ejemplo, el FOC puede generar referencias y tensiones:
+
+\begin{equation}
+(i_d^\ast,i_q^\ast)
+\rightarrow
+(v_d^\ast,v_q^\ast),
+\end{equation}
+
+mientras que la planta responde mediante:
+
+\begin{equation}
+(v_d,v_q)
+\rightarrow
+(i_d,i_q,\omega_m,\theta_m).
+\end{equation}
+
+Esta separación permite que posteriormente otro controlador utilice la misma planta:
+
+\begin{equation}
+\mathrm{FOC}
+\quad\text{o}\quad
+\mathrm{MPC}
+\quad\text{o}\quad
+\mathrm{supervisor\ ANFIS}
+\quad\text{o}\quad
+\mathrm{otra\ estrategia}.
+\end{equation}
+
+La planta permanece definida por su física y sus parámetros, mientras que el controlador se define por sus objetivos y leyes de control.
+
+\subsection{Consistencia con la arquitectura por contratos}
+
+La formulación matemática también establece qué variables deben atravesar la frontera entre la planta y los controladores.
+
+En el dominio $dq$, las variables principales son:
+
+\begin{equation}
+v_d,\quad
+v_q,\quad
+i_d,\quad
+i_q,\quad
+\omega_m,\quad
+\theta_m,\quad
+T_e.
+\end{equation}
+
+En la frontera eléctrica trifásica aparecen:
+
+\begin{equation}
+v_a,v_b,v_c
+\end{equation}
+
+y:
+
+\begin{equation}
+i_a,i_b,i_c.
+\end{equation}
+
+Estas variables constituyen información que puede ser transportada mediante los contratos definidos por la arquitectura.
+
+El modelo matemático, por tanto, no solamente describe la dinámica interna, sino que ayuda a establecer una frontera física coherente entre la planta y los sistemas que interactúan con ella.
+
+\subsection{Relación entre modelo matemático y Digital Twin}
+
+La formulación matemática constituye una de las capas fundamentales del Digital Twin.
+
+La relación completa puede representarse como:
+
+\begin{equation}
+\text{Máquina física}
+\rightarrow
+\text{datos}
+\rightarrow
+\text{parámetros}
+\rightarrow
+\text{ecuaciones}
+\rightarrow
+\text{modelo computacional}.
+\end{equation}
+
+La etapa posterior incorpora validación y aumento de fidelidad:
+
+\begin{equation}
+\text{modelo computacional}
+\rightarrow
+\text{validación}
+\rightarrow
+\text{mapas}
+\rightarrow
+\text{modelo no lineal}
+\rightarrow
+\text{FEM/ROM}.
+\end{equation}
+
+Finalmente, la planta puede convertirse en el núcleo de una plataforma de experimentación para diferentes estrategias de control.
+
+El Digital Twin no se define, por tanto, únicamente por la existencia de una ecuación diferencial. Se construye mediante la combinación de:
+
+\begin{equation}
+\text{trazabilidad}
++
+\text{modelo físico}
++
+\text{datos}
++
+\text{validación}
++
+\text{evolución de fidelidad}.
+\end{equation}
+
+\subsection{Resumen de la derivación}
+
+La formulación desarrollada puede resumirse mediante la siguiente secuencia:
+
+\begin{equation}
+v=Ri+\frac{d\psi}{dt}
+\end{equation}
+
+\begin{equation}
+\Downarrow
+\end{equation}
+
+\begin{equation}
+\psi_d=L_di_d+\lambda_m,
+\qquad
+\psi_q=L_qi_q
+\end{equation}
+
+\begin{equation}
+\Downarrow
+\end{equation}
+
+\begin{equation}
+v_d=
+R_si_d+
+L_d\frac{di_d}{dt}
+-
+\omega_eL_qi_q
+\end{equation}
+
+\begin{equation}
+v_q=
+R_si_q+
+L_q\frac{di_q}{dt}
++
+\omega_e(L_di_d+\lambda_m)
+\end{equation}
+
+\begin{equation}
+\Downarrow
+\end{equation}
+
+\begin{equation}
+T_e=
+\frac{3}{2}p
+\left[
+\lambda_mi_q+
+(L_d-L_q)i_di_q
+\right]
+\end{equation}
+
+\begin{equation}
+\Downarrow
+\end{equation}
+
+\begin{equation}
+J\frac{d\omega_m}{dt}
+=
+T_e-T_{\mathrm{load}}
+\end{equation}
+
+\begin{equation}
+\Downarrow
+\end{equation}
+
+\begin{equation}
+x=
+\begin{bmatrix}
+i_d&i_q&\omega_m&\theta_m
+\end{bmatrix}^{T}.
+\end{equation}
+
+Esta cadena constituye la formulación matemática fundamental de la planta M4.
+
+\subsection{Alcance de la formulación actual}
+
+La formulación presentada describe de manera completa el nivel concentrado actualmente implementado, pero no pretende cerrar todavía la representación de alta fidelidad de la máquina.
+
+El modelo matemático actual permite:
+
+\begin{itemize}
+    \item representar las dinámicas eléctricas principales;
+    \item representar la interacción electromecánica;
+    \item calcular el par electromagnético de referencia;
+    \item representar la evolución mecánica;
+    \item definir una representación de estados reproducible;
+    \item implementar la planta en Python;
+    \item conectar la planta con estrategias de control.
+\end{itemize}
+
+Todavía no permite representar explícitamente:
+
+\begin{itemize}
+    \item saturación magnética;
+    \item variación de inductancias con corriente;
+    \item dependencia angular detallada;
+    \item armónicos espaciales;
+    \item pérdidas electromagnéticas detalladas;
+    \item evolución térmica acoplada;
+    \item mapas FEM validados.
+\end{itemize}
+
+La incorporación de estos fenómenos constituye la evolución natural del modelo, pero deberá realizarse únicamente cuando exista información física suficiente para parametrizarlos y validarlos.
+
+\subsection{Cierre del capítulo}
+
+La formulación matemática establece la conexión formal entre la máquina PMSM de referencia, sus parámetros y la implementación computacional utilizada en M4.
+
+El proceso parte de la ley fundamental de tensión, introduce los enlaces de flujo asociados a las corrientes y a los imanes permanentes, transforma las variables trifásicas a coordenadas $dq$, incorpora la velocidad eléctrica y obtiene las ecuaciones de corriente. A partir de los enlaces de flujo se deriva el par electromagnético y, finalmente, el balance mecánico completa el sistema dinámico.
+
+La formulación también permite identificar con claridad qué parte del modelo corresponde a datos documentales, qué parte corresponde a magnitudes derivadas y qué parte constituye una decisión de modelado.
+
+Esta distinción resulta esencial para la trazabilidad del Digital Twin.
+
+El siguiente paso consiste en llevar estas ecuaciones a una representación explícita de espacio de estados y relacionarla con la implementación de referencia MATLAB/Simscape y con la reconstrucción reproducible en Python. Posteriormente, la validación experimental y documental permitirá determinar qué elementos del modelo concentrado deben conservarse y cuáles deberán sustituirse por representaciones de mayor fidelidad.
+
+La evolución prevista permanece:
+
+\begin{equation}
+\mathrm{M4}_{\mathrm{concentrated}}
+\rightarrow
+\mathrm{maps}
+\rightarrow
+\mathrm{nonlinear}
+\rightarrow
+\mathrm{FEM/ROM}
+\rightarrow
+\mathrm{Digital\ Twin}.
+\end{equation}
