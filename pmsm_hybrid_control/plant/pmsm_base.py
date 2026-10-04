@@ -37,7 +37,6 @@ class PlantInput:
     vb: float = 0.0       # tension fase B [V]
     vc: float = 0.0       # tension fase C [V]
     t_load: float = 0.0   # torque de carga total [N*m] (incluye lo que B/Tfric cubririan)
-    theta_m: float = 0.0  # posicion mecanica [rad]
 
 
 @dataclass
@@ -108,9 +107,7 @@ class PMSMBase:
             raise ValueError("dt debe ser positivo")
         from pmsm_hybrid_control.transforms.park import park_transform, inverse_park_transform
 
-        theta_e = self.params.n_pole_pairs * inp.theta_m
-        # Consistencia: la entrada theta_m se usa como posicion del rotor.
-        self._theta_m = inp.theta_m
+        theta_e = self.params.n_pole_pairs * self._theta_m
 
         # abc -> dq0
         v_d, v_q = park_transform(*_clarke_amplitude(inp.va, inp.vb, inp.vc), theta_e)

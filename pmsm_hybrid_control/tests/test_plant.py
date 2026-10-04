@@ -17,16 +17,43 @@ def test_torque_reference_equation():
     assert te == pytest.approx(1.5 * 4 * 0.107245 * 2.0, abs=1e-12)
 
 
-def test_theta_e_is_four_times_theta_m():
+def test_theta_e_is_four_times_internal_theta_m():
     plant = PMSMBase()
-    plant.step(PlantInput(theta_m=0.25, va=0, vb=0, vc=0, t_load=0), 1e-6)
+    plant.step(PlantInput(va=0, vb=0, vc=0, t_load=0), 1e-6)
     assert plant.theta_e == pytest.approx(4 * plant.states["theta_m"])
+
+
+def test_theta_m_is_owned_by_plant():
+    plant = PMSMBase()
+
+    inp = PlantInput(
+        va=0.0,
+        vb=0.5,
+        vc=-0.5,
+        t_load=0.0,
+    )
+
+    out_1 = plant.step(inp, 50e-6)
+    theta_1 = out_1.theta_m
+
+    out_2 = plant.step(inp, 50e-6)
+    theta_2 = out_2.theta_m
+
+    out_3 = plant.step(inp, 50e-6)
+
+    assert theta_1 == pytest.approx(0.0)
+    assert theta_2 == pytest.approx(0.0)
+    assert out_3.theta_m != pytest.approx(0.0)
+    assert out_3.theta_m == pytest.approx(plant.states["theta_m"])
+    assert out_3.theta_m > theta_2
 
 
 def test_interface_io_contract():
     plant = PMSMBase()
-    out = plant.step(PlantInput(va=1.0, vb=-0.5, vc=-0.5, t_load=0.1,
-                                theta_m=0.0), 50e-6)
+    out = plant.step(
+        PlantInput(va=1.0, vb=-0.5, vc=-0.5, t_load=0.1),
+        50e-6,
+    )
     assert isinstance(out, PlantOutput)
     assert out.ia + out.ib + out.ic == pytest.approx(0.0, abs=1e-9)
 
@@ -40,7 +67,7 @@ def test_simulation_runs_without_blowup():
             va=5*math.sin(2*math.pi*50*t),
             vb=5*math.sin(2*math.pi*50*t - 2*math.pi/3),
             vc=5*math.sin(2*math.pi*50*t + 2*math.pi/3),
-            t_load=0.0, theta_m=plant.states["theta_m"]), 50e-6)
+            t_load=0.0), 50e-6)
     assert all(math.isfinite(v) for v in [out.ia, out.ib, out.ic, out.omega_m, out.te])
 
 
