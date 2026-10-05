@@ -69,7 +69,6 @@ def run_case(name: str, kp_w: float, ki_w: float) -> dict:
             vb=0.0,
             vc=0.0,
             t_load=0.0,
-            theta_m=plant.states["theta_m"],
         ),
         dt=DT,
     )
@@ -103,7 +102,6 @@ def run_case(name: str, kp_w: float, ki_w: float) -> dict:
                 vb=vb,
                 vc=vc,
                 t_load=t_load,
-                theta_m=output.theta_m,
             ),
             dt=DT,
         )

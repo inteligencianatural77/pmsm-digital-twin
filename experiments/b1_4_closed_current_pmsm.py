@@ -30,7 +30,6 @@ def main() -> None:
             vb=0.0,
             vc=0.0,
             t_load=T_LOAD,
-            theta_m=plant.states["theta_m"],
         ),
         dt=DT,
     )
@@ -55,7 +54,6 @@ def main() -> None:
                 vb=vb,
                 vc=vc,
                 t_load=T_LOAD,
-                theta_m=output.theta_m,
             ),
             dt=DT,
         )
