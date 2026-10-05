@@ -119,8 +119,14 @@ class PMSMBase:
         self._omega_m += k1[2] * dt
         self._theta_m += k1[3] * dt
 
-        # dq0 -> abc para las corrientes de salida
-        i_a, i_b, i_c = _inverse_clarke_amplitude(*inverse_park_transform(self._id, self._iq, theta_e))
+        # dq0 -> abc para las corrientes de salida.
+        # D-08 (opcion A): PlantOutput es una instantanea coherente de x[k+1].
+        # id/iq ya estan integrados, asi que se reconstruyen con el angulo
+        # electrico POST-integracion.
+        theta_e_out = self.params.n_pole_pairs * self._theta_m
+        i_a, i_b, i_c = _inverse_clarke_amplitude(
+            *inverse_park_transform(self._id, self._iq, theta_e_out)
+        )
 
         return PlantOutput(
             ia=i_a, ib=i_b, ic=i_c,
