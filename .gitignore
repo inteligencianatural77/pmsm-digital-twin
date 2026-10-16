@@ -33,3 +33,21 @@ pmsm_hybrid_control.egg-info/
 *.toc
 *.lof
 *.lot
+
+# ========================================
+# BASURA / ARCHIVOS ACCIDENTALES
+# ========================================
+np
+os
+pd
+plt
+zipfile
+initial_int_id
+hacer_graficas.py.save
+tatus*
+how --format*
+
+# Backups adicionales
+*.before_*
+*.save
+*.plantilla_original
