@@ -1,0 +1,44 @@
+\begin{tikzpicture}[
+    >=Latex,
+    node distance=9mm and 10mm,
+    block/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum height=12mm,
+        minimum width=27mm
+    },
+    signal/.style={->,thick}
+]
+
+\node[block] (wref) {$\omega^*$};
+\node[block, right=of wref] (piw) {PI de velocidad};
+\node[block, right=of piw] (iqref) {$i_q^*$};
+\node[block, right=of iqref] (foc) {FOC de\\corriente};
+\node[block, right=of foc] (plant) {M4\_BASE\\PMSM 1FT7087};
+
+\draw[signal]
+    (wref) -- node[above] {$e_\omega$} (piw);
+
+\draw[signal]
+    (piw) -- (iqref);
+
+\draw[signal]
+    (iqref) -- (foc);
+
+\draw[signal]
+    (foc) -- node[above] {$v_a,v_b,v_c$} (plant);
+
+\draw[signal]
+    (plant.south)
+    |- ++(0,-15mm)
+    -| node[pos=0.20,below] {$\omega_m$}
+    (piw.south);
+
+\draw[signal]
+    (plant.south)
+    |- ++(0,-25mm)
+    -| node[pos=0.08,below] {$i_a,i_b,i_c,\theta_m$}
+    (foc.south);
+
+\end{tikzpicture}

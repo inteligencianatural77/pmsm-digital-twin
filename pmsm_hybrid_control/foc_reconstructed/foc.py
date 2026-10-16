@@ -26,7 +26,7 @@ class FOC:
         *,
         ld: float = 0.0012,
         lq: float = 0.0012,
-        lambda_m: float = 0.1100,
+        lambda_m: float = 0.107245,
         pole_pairs: int = 4,
         kp_speed: float = 5.2804,
         ki_speed: float = 1.2693,

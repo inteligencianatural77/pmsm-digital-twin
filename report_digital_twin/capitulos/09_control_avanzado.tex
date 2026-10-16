@@ -1,0 +1,198 @@
+\section{Evolución hacia control avanzado}
+
+El desarrollo del sistema de control se plantea como una evolución progresiva sobre una misma planta digital, evitando que la incorporación de estrategias de mayor complejidad modifique simultáneamente la referencia física utilizada para su evaluación. Esta condición permite separar los efectos asociados al modelo de la planta de aquellos producidos por la estrategia de control.
+
+La implementación actualmente desarrollada corresponde al control orientado al campo (\textit{Field Oriented Control}, FOC), utilizado como línea base experimental en los ensayos B1 y B2. Sobre esta base se establece una ruta posterior hacia estrategias de control avanzado, constituida por control predictivo basado en modelo (MPC), adaptación supervisora mediante ANFIS y, posteriormente, una posible implementación embebida mediante técnicas de TinyML.
+
+La evolución propuesta conserva como referencia común el modelo PMSM \texttt{M4\_BASE}, su parametrización activa, las convenciones de referencia y los criterios experimentales establecidos en los capítulos anteriores.
+
+\subsection{Ruta de evolución del control}
+
+La evolución del control se plantea sobre una misma representación física de la planta, manteniendo constantes la parametrización activa del modelo PMSM, las convenciones de referencia y las condiciones experimentales utilizadas para la evaluación.
+
+El FOC constituye actualmente la estrategia implementada y utilizada como línea base experimental en los ensayos B1 y B2. A partir de esta referencia se plantean tres líneas de evolución: control predictivo basado en modelo (MPC), adaptación supervisora mediante ANFIS y una posible implementación embebida mediante técnicas de TinyML.
+
+Las estrategias se consideran alternativas de control que utilizan la misma referencia física del Digital Twin:
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.5cm and 2.2cm,
+    block/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=3.2cm,
+        minimum height=1cm
+    },
+    arrow/.style={-{Latex}, thick}
+]
+
+\node[block] (plant) {M4\_BASE\\Digital Twin};
+
+\node[block, above right=of plant] (foc) {FOC};
+\node[block, right=of plant] (mpc) {MPC};
+\node[block, below right=of plant] (anfis) {ANFIS};
+\node[block, right=of anfis] (tinyml) {TinyML};
+
+\draw[arrow] (plant) -- (foc);
+\draw[arrow] (plant) -- (mpc);
+\draw[arrow] (plant) -- (anfis);
+\draw[arrow] (anfis) -- (tinyml);
+
+\end{tikzpicture}
+\end{center}
+
+Esta representación no implica que MPC, ANFIS y TinyML constituyan etapas obligatorias de una única cadena de control. Representa una ruta de investigación en la que cada estrategia puede evaluarse manteniendo como referencia común la misma planta digital.
+
+El FOC es actualmente la única estrategia implementada y utilizada experimentalmente sobre \texttt{M4\_BASE}. MPC, ANFIS y TinyML corresponden a líneas de desarrollo posteriores y no se les asignan resultados experimentales que todavía no hayan sido obtenidos.
+
+La separación entre estas líneas permite incrementar progresivamente la complejidad del control sin modificar simultáneamente la referencia física utilizada para su evaluación.
+
+\subsection{Control predictivo basado en modelo (MPC)}
+
+El control predictivo basado en modelo constituye la primera extensión propuesta respecto al FOC. Su principal diferencia conceptual consiste en utilizar explícitamente un modelo del sistema para anticipar su evolución y seleccionar la acción de control de acuerdo con una función objetivo.
+
+Para el sistema PMSM, el modelo \texttt{M4\_BASE} proporciona una representación matemática adecuada como punto de partida para esta estrategia. Las variables eléctricas $i_d$, $i_q$ y las variables mecánicas asociadas al movimiento constituyen estados relevantes para la predicción de la respuesta del sistema.
+
+Una formulación general puede expresarse como:
+
+\begin{equation}
+x_{k+1}=f(x_k,u_k)
+\end{equation}
+
+donde $x_k$ representa el estado de la planta y $u_k$ la acción de control aplicada en el instante $k$.
+
+El controlador predictivo puede entonces plantearse mediante una función de costo que considere el seguimiento de referencias y, cuando corresponda, penalizaciones asociadas a las acciones de control:
+
+\begin{equation}
+J=
+\sum_{j=1}^{N_p}
+\left(y_{k+j}-r_{k+j}\right)^{T}
+Q
+\left(y_{k+j}-r_{k+j}\right)
++
+\sum_{j=0}^{N_u-1}
+\Delta u_{k+j}^{T}
+R
+\Delta u_{k+j}
+\end{equation}
+
+donde $N_p$ representa el horizonte de predicción, $N_u$ el horizonte de control, $Q$ y $R$ son matrices de ponderación, $y$ corresponde a la salida prevista y $r$ a la referencia.
+
+En esta etapa del desarrollo, esta formulación se considera una definición metodológica para una implementación posterior. No se presentan resultados experimentales de MPC como si ya hubieran sido obtenidos. Su evaluación deberá realizarse utilizando la misma planta, parametrización y escenarios de referencia empleados para el FOC.
+
+Una ventaja relevante de esta estrategia para el Digital Twin es la posibilidad de incorporar explícitamente restricciones relacionadas con las variables eléctricas, tensiones disponibles y límites de operación. Esto permite estudiar no solamente el seguimiento de referencias, sino también el comportamiento del controlador ante restricciones propias del accionamiento.
+
+\subsection{Control adaptativo mediante ANFIS}
+
+La segunda línea de evolución corresponde a una arquitectura ANFIS (\textit{Adaptive Neuro-Fuzzy Inference System}) utilizada como capa supervisora. La intención no es sustituir directamente el modelo físico de la planta ni convertir el ANFIS en una representación alternativa del motor.
+
+La función prevista consiste en utilizar información del estado de operación para modificar de manera supervisada determinados parámetros del controlador. En particular, se considera como estructura de entrada:
+
+\begin{equation}
+z=
+\left[
+e_{\omega},
+\dot e_{\omega},
+|i_q|
+\right]
+\end{equation}
+
+donde $e_{\omega}$ representa el error de velocidad y $\dot e_{\omega}$ su variación temporal.
+
+Las salidas previstas corresponden a parámetros adaptativos del controlador:
+
+\begin{equation}
+\left[
+K_p^{adapt},
+K_i^{adapt}
+\right]
+=
+F_{ANFIS}
+\left(
+e_{\omega},
+\dot e_{\omega},
+|i_q|
+\right)
+\end{equation}
+
+La configuración conceptual considerada utiliza tres funciones de pertenencia gaussianas por entrada. Con tres entradas y tres funciones de pertenencia por entrada, la estructura completa genera:
+
+\begin{equation}
+3^3=27
+\end{equation}
+
+combinaciones de reglas para un sistema Sugeno.
+
+Esta arquitectura debe permanecer subordinada a las restricciones físicas y de control del sistema. Por ello, una implementación posterior deberá incorporar una capa de seguridad o limitación que impida que la adaptación genere referencias o acciones incompatibles con los límites definidos para la planta y el accionamiento.
+
+El ANFIS se considera, por tanto, una capa de adaptación sobre el control existente y no una sustitución de la parametrización física del Digital Twin.
+
+\subsection{TinyML y posible implementación embebida}
+
+La tercera etapa corresponde a la evaluación de una posible implementación mediante técnicas de TinyML. Esta etapa está orientada principalmente a determinar si una función de inferencia previamente validada puede ejecutarse en una plataforma embebida con recursos computacionales y de memoria limitados.
+
+El interés de esta etapa no reside únicamente en reducir el tamaño del modelo. También debe conservarse el comportamiento funcional necesario para el control y mantenerse una trazabilidad entre el modelo utilizado durante el desarrollo y la versión finalmente ejecutada en el dispositivo.
+
+La cadena metodológica propuesta es:
+
+\begin{enumerate}
+\item desarrollo y validación de la estrategia en el entorno de referencia;
+\item identificación de las variables necesarias para la inferencia;
+\item reducción o simplificación del modelo cuando sea necesaria;
+\item evaluación de precisión y costo computacional;
+\item incorporación de restricciones de operación;
+\item implementación en plataforma embebida;
+\item comparación de la respuesta con la referencia de simulación.
+\end{enumerate}
+
+La implementación TinyML no debe modificar por sí misma la definición de la planta. El Digital Twin continúa siendo la referencia física y matemática contra la cual se evalúa el comportamiento del controlador.
+
+En consecuencia, cualquier reducción del modelo de inferencia debe considerarse una transformación de la capa de control y no una modificación de los parámetros fundamentales del PMSM.
+
+\subsection{Comparación y criterios de evaluación}
+
+La comparación entre las diferentes estrategias deberá realizarse bajo condiciones equivalentes. La finalidad es evitar que una mejora aparente del controlador sea consecuencia de una modificación simultánea de la planta, de sus parámetros o de las condiciones experimentales.
+
+Los principales criterios de evaluación considerados son:
+
+\begin{table}[H]
+\centering
+\caption{Criterios propuestos para la evaluación de las estrategias de control.}
+\label{tab:criterios_control_avanzado}
+\begin{tabular}{p{0.28\textwidth}p{0.62\textwidth}}
+\toprule
+\textbf{Criterio} & \textbf{Aspecto evaluado} \\
+\midrule
+Seguimiento de referencia &
+Error de velocidad y de corriente respecto a las referencias establecidas. \\
+
+Respuesta transitoria &
+Tiempo de respuesta, sobreimpulso y comportamiento ante cambios de referencia. \\
+
+Perturbaciones &
+Respuesta ante variaciones del par de carga y otras condiciones de operación definidas experimentalmente. \\
+
+Esfuerzo de control &
+Magnitud y variación de las tensiones y referencias generadas por el controlador. \\
+
+Restricciones &
+Capacidad para mantener las variables dentro de los límites establecidos. \\
+
+Robustez &
+Sensibilidad de la respuesta ante cambios de condiciones de operación o incertidumbres del modelo. \\
+
+Costo computacional &
+Tiempo de ejecución, memoria y recursos necesarios para la implementación. \\
+
+Trazabilidad &
+Capacidad para relacionar cada resultado con la planta, parámetros, estrategia y condiciones experimentales utilizadas. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La comparación deberá conservar una separación clara entre tres niveles de evidencia. Primero, la consistencia computacional de la implementación. Segundo, la evidencia funcional obtenida mediante experimentos reproducibles. Tercero, la validación física frente a referencias independientes cuando estas se encuentren disponibles.
+
+En el estado actual del desarrollo, el FOC constituye la única estrategia de control de esta ruta que ha sido implementada y utilizada experimentalmente sobre \texttt{M4\_BASE}. MPC, ANFIS y TinyML corresponden a líneas de evolución posteriores y, por tanto, no se asignan resultados experimentales que todavía no hayan sido obtenidos.
+
+Esta separación permite que las futuras comparaciones se incorporen progresivamente sin modificar la referencia física establecida por el Digital Twin.

@@ -1,0 +1,11 @@
+scenario,transition,kp_factor,ki_factor,kp,ki,iq_ref_max_A
+no_friction,0_to_plus20,1.25,0.5,6.6005,0.63465,112.43
+no_friction,plus20_to_zero,1.25,0.5,6.6005,0.63465,112.43
+no_friction,zero_to_minus20,1.25,0.5,6.6005,0.63465,112.43
+no_friction,minus20_to_zero,1.25,0.5,6.6005,0.63465,112.43
+no_friction,0_to_plus20,1.25,0.75,6.6005,0.951975,112.43
+no_friction,plus20_to_zero,1.25,0.75,6.6005,0.951975,112.43
+no_friction,zero_to_minus20,1.25,0.75,6.6005,0.951975,112.43
+no_friction,minus20_to_zero,1.25,0.75,6.6005,0.951975,112.43
+no_friction,0_to_plus20,1.25,1.0,6.6005,1.2693,112.43
+no_friction,plus20_to_zero,1.25,1.0,6.6005,1.2693,112.43

@@ -150,3 +150,36 @@ def test_nonpositive_dt_is_rejected(dt: float) -> None:
             iq_meas=0.0,
             dt=dt,
         )
+
+
+def test_conditional_anti_windup_rolls_back_only_windup_axes() -> None:
+    controller = CurrentController(
+        kp_id=1.0,
+        ki_id=1.0,
+        kp_iq=1.0,
+        ki_iq=1.0,
+    )
+
+    dt = 0.1
+    controller.update(
+        id_ref=2.0,
+        iq_ref=3.0,
+        id_meas=0.0,
+        iq_meas=0.0,
+        dt=dt,
+    )
+
+    # El error d empuja hacia el exceso de tensión; el error q
+    # tiene signo contrario y no debe revertirse.
+    controller.apply_conditional_anti_windup(
+        error_id=2.0,
+        error_iq=-3.0,
+        dt=dt,
+        vd_requested=12.0,
+        vq_requested=8.0,
+        vd_applied=9.0,
+        vq_applied=6.0,
+    )
+
+    assert controller.int_id == pytest.approx(0.0)
+    assert controller.int_iq == pytest.approx(0.3)

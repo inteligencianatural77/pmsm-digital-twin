@@ -1,0 +1,178 @@
+\section{Caracterización y trazabilidad de la planta PMSM}
+
+\subsection{Motor Siemens 1FT7087}
+
+La planta considerada en este trabajo corresponde al motor síncrono de imanes permanentes (PMSM) Siemens 1FT7087. El Digital Twin se desarrolla específicamente a partir de las características y relaciones físicas asociadas a este motor, por lo que la parametrización de la planta no se plantea como la configuración genérica de un modelo PMSM, sino como la representación computacional de una máquina eléctrica concreta.
+
+El proceso de caracterización parte de la información disponible del motor y de su interpretación dentro del modelo matemático adoptado. A partir de esta información se establecen los parámetros eléctricos, mecánicos y térmicos utilizados por la representación computacional, manteniendo diferenciados los valores de fuente, los parámetros derivados y las decisiones propias de implementación.
+
+Esta distinción es necesaria para conservar la trazabilidad entre el motor físico y su representación computacional. En consecuencia, un valor utilizado por el Digital Twin no se considera automáticamente un dato directo del fabricante: dependiendo de su naturaleza, puede corresponder a un dato de fuente, a un parámetro calculado a partir de otros datos o a una condición adoptada explícitamente para una determinada etapa de desarrollo.
+
+\subsection{Fuentes de información}
+
+La caracterización de la planta se construye a partir de la documentación técnica disponible del motor Siemens 1FT7087 y de los documentos de trabajo utilizados para establecer y verificar los parámetros del modelo.
+
+Las fuentes se clasifican de acuerdo con su función dentro del proceso de parametrización. La información documental proporciona datos de referencia del motor, mientras que los cálculos y relaciones matemáticas permiten obtener parámetros que no necesariamente aparecen de forma directa en las unidades requeridas por el modelo.
+
+Para conservar la trazabilidad, los parámetros utilizados por la implementación se mantienen vinculados a su procedencia y a su estado dentro del proceso de desarrollo. Esta organización permite distinguir entre información confirmada, parámetros derivados y valores que requieren una verificación documental adicional antes de ser incorporados como referencia física.
+
+En particular, los parámetros asociados al modelo PMSM utilizado en esta etapa se establecen a partir del documento de datos de planta utilizado como fuente de configuración del modelo. Los valores históricos procedentes de otras configuraciones de control se mantienen separados y no sustituyen los parámetros adoptados para la planta Siemens 1FT7087.
+
+\subsection{Parámetros eléctricos}
+
+Los principales parámetros eléctricos utilizados por la representación M4\_BASE se muestran en la Tabla~\ref{tab:parametros-electricos-m4}.
+
+\begin{table}[H]
+\centering
+\caption{Parámetros eléctricos adoptados para la planta PMSM.}
+\label{tab:parametros-electricos-m4}
+\begin{tabular}{lll}
+\toprule
+Parámetro & Valor & Unidad \\
+\midrule
+$R_s$ & 0.05 & $\Omega$ \\
+$M_s$ & 0.00002 & H \\
+$L_0$ & 0.00016 & H \\
+$L_d$ & 0.0012 & H \\
+$L_q$ & 0.0012 & H \\
+$\lambda_m$ & 0.107245 & Wb \\
+$p$ & 4 & pares de polos \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La resistencia estatórica se adopta como $R_s=0.05~\Omega$, mientras que las inductancias utilizadas en el modelo son $L_d=L_q=0.0012~\mathrm{H}$. La igualdad entre las inductancias implica que, dentro de la representación actual, el término de par de reluctancia asociado a la diferencia $L_d-L_q$ es nulo.
+
+El número de pares de polos utilizado en las transformaciones eléctricas es $p=4$, correspondiente a ocho polos físicos. Este parámetro se mantiene diferenciado del parámetro $N=6$ empleado en la configuración del bloque de modelado, ya que ambos representan conceptos diferentes y no deben intercambiarse.
+
+El flujo permanente $\lambda_m=0.107245~\mathrm{Wb}$ se considera un parámetro derivado de la caracterización del motor. Su obtención parte de la constante de par publicada en unidades RMS y aplica explícitamente la conversión entre magnitudes RMS y amplitud de pico requerida por la formulación del modelo. El valor resultante se contrasta además mediante la constante de fuerza contraelectromotriz disponible para el motor.
+
+Este procedimiento es importante porque evita interpretar directamente una magnitud RMS como si correspondiera a la amplitud de la variable utilizada en la ecuación del modelo. La trazabilidad del parámetro $\lambda_m$ se conserva junto con la formulación empleada para su obtención y con su verificación cruzada.
+
+\subsection{Parámetros mecánicos}
+
+Los parámetros mecánicos principales utilizados por la planta se presentan en la Tabla~\ref{tab:parametros-mecanicos-m4}.
+
+\begin{table}[H]
+\centering
+\caption{Parámetros mecánicos adoptados para la planta PMSM.}
+\label{tab:parametros-mecanicos-m4}
+\begin{tabular}{lll}
+\toprule
+Parámetro & Valor & Unidad \\
+\midrule
+$J$ & 0.00416 & $\mathrm{kg\,m^2}$ \\
+$N$ & 6 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El momento de inercia utilizado es $J=0.00416~\mathrm{kg\,m^2}$. El parámetro $N=6$ corresponde a la configuración del bloque de modelado y no se utiliza como número de pares de polos de la máquina.
+
+En esta etapa no se incorporan como parámetros activos de la planta los valores de amortiguamiento viscoso $B$ ni de par de fricción estática $T_{\mathrm{fric}}$, debido a que no forman parte de la configuración de planta adoptada. La acción resistente externa se representa mediante la entrada de par de carga $T_{\mathrm{load}}$.
+
+Esta decisión permite mantener separadas las propiedades mecánicas identificadas de la máquina y las condiciones de carga utilizadas durante los experimentos.
+
+\subsection{Parámetros térmicos}
+
+La caracterización incluye también parámetros relacionados con la evolución térmica y con la dependencia de determinadas propiedades del motor respecto de la temperatura. Los valores almacenados para esta etapa son
+
+\begin{table}[H]
+\centering
+\caption{Parámetros térmicos considerados en la caracterización.}
+\label{tab:parametros-termicos-m4}
+\begin{tabular}{lll}
+\toprule
+Parámetro & Valor & Unidad \\
+\midrule
+$\alpha$ & $3.93\times10^{-3}$ & $\mathrm{K^{-1}}$ \\
+$\alpha_{\mathrm{flux}}$ & $-1.0\times10^{-3}$ & $\mathrm{K^{-1}}$ \\
+$T_{\mathrm{meas}}$ & 298.15 & K \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Estos parámetros se conservan como parte de la caracterización de la planta y permiten establecer una base para futuras extensiones relacionadas con la dependencia térmica de la resistencia y del flujo magnético.
+
+En la implementación actual de M4\_BASE, el comportamiento térmico no constituye un estado dinámico activo de la planta. Por tanto, estos parámetros no se utilizan para alterar las ecuaciones eléctricas durante los ensayos presentados en este reporte.
+
+\subsection{Convenciones}
+
+La representación de la máquina requiere establecer convenciones coherentes para las variables eléctricas, mecánicas y las transformaciones utilizadas por el control.
+
+La velocidad mecánica se representa mediante $\omega_m$ y la posición mecánica mediante $\theta_m$. Las correspondientes magnitudes eléctricas se obtienen mediante
+
+\begin{equation}
+\omega_e=p\omega_m
+\end{equation}
+
+y
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+La transformación de referencia utilizada por el FOC adopta la convención
+\textit{QleadsD\_AphaseToDaxis}. Esta convención determina la relación entre las corrientes trifásicas y las componentes $d$--$q$, por lo que se mantiene explícita para evitar ambigüedades de signo o de referencia angular entre la planta y el controlador.
+
+Las magnitudes de corriente $i_d$ e $i_q$ corresponden a las componentes en el marco rotante utilizado por el control. La corriente trifásica se representa mediante $i_a$, $i_b$ e $i_c$, mientras que las tensiones aplicadas a la planta se representan mediante $v_a$, $v_b$ y $v_c$.
+
+\subsection{Condiciones nominales}
+
+Las condiciones nominales consideradas para la caracterización se resumen en la Tabla~\ref{tab:nominales-m4}.
+
+\begin{table}[H]
+\centering
+\caption{Condiciones nominales de referencia de la planta.}
+\label{tab:nominales-m4}
+\begin{tabular}{lll}
+\toprule
+Magnitud & Valor & Unidad \\
+\midrule
+$I_d$ nominal & 53 & A \\
+$I_q$ nominal & 53 & A \\
+$T_e$ nominal & 46 & N\,m \\
+$n$ nominal & 471.24 & rpm \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Estas condiciones se consideran referencias de caracterización del motor y no constituyen automáticamente los límites de operación implementados por el controlador.
+
+Esta distinción es particularmente importante para la corriente $i_q$. Los límites utilizados posteriormente por el controlador de velocidad corresponden a una configuración de la capa de control y no deben interpretarse como una especificación física adicional del motor.
+
+\subsection{Separación entre planta y control}
+
+La parametrización de la planta y la configuración del controlador se mantienen separadas durante el desarrollo. Los parámetros eléctricos, mecánicos y térmicos descritos en esta sección pertenecen a la representación del motor, mientras que las ganancias de los controladores, límites de referencia y parámetros de desacoplamiento pertenecen a la capa de control.
+
+Por ejemplo, las ganancias históricas utilizadas como referencia para los controladores PI de corriente y velocidad se conservan como parámetros del FOC y no se incorporan como propiedades del motor. De forma equivalente, el límite de referencia de $i_q$ empleado por el controlador de velocidad se interpreta como una restricción de la señal de referencia generada por dicha capa.
+
+Esta separación permite modificar o comparar estrategias de control sin alterar la definición de la planta utilizada como referencia experimental.
+
+\subsection{Proceso de parametrización y verificación}
+
+La parametrización del Digital Twin no consiste únicamente en trasladar valores numéricos a un modelo computacional. El proceso comprende la selección de fuentes, el análisis de las magnitudes físicas, la identificación de unidades y convenciones, el cálculo de parámetros derivados, la formulación matemática y su posterior incorporación a la implementación.
+
+De forma general, el flujo utilizado puede expresarse como
+
+\begin{equation}
+\text{información del motor}
+\rightarrow
+\text{análisis físico}
+\rightarrow
+\text{cálculo o derivación}
+\rightarrow
+\text{parametrización}
+\rightarrow
+\text{formulación}
+\rightarrow
+\text{implementación}.
+\end{equation}
+
+Este procedimiento permite diferenciar tres niveles de información. El primero corresponde a los datos obtenidos de las fuentes de referencia. El segundo corresponde a los parámetros calculados o derivados a partir de relaciones físicas y conversiones de unidades. El tercero corresponde a las decisiones de implementación necesarias para representar dichas relaciones dentro del Digital Twin.
+
+El parámetro $\lambda_m=0.107245~\mathrm{Wb}$ constituye un ejemplo de esta metodología. Su valor no se introduce como una sustitución directa de una magnitud publicada, sino como resultado de una derivación que considera la relación entre la constante de par, la corriente RMS y la amplitud de pico utilizada en la formulación del modelo. Posteriormente se realiza una comprobación independiente mediante la constante de fuerza contraelectromotriz.
+
+La verificación de los parámetros se complementa con los ensayos computacionales descritos posteriormente. De esta manera, la trazabilidad de la planta se establece desde la información de referencia hasta la implementación y los resultados experimentales, sin confundir consistencia computacional con validación física del motor.
+
+La parametrización adoptada en esta sección constituye, por tanto, la base común sobre la cual se construyen el modelo PMSM M4\_BASE y las diferentes estrategias de control evaluadas en el Digital Twin.

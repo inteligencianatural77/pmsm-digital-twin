@@ -1,0 +1,453 @@
+\section{Ensayos y resultados}
+
+\subsection{Organización de los ensayos}
+
+Los ensayos experimentales se organizaron de forma progresiva para evaluar primero componentes individuales del control y posteriormente la interacción entre el controlador y el modelo de la planta. La secuencia conserva la trazabilidad establecida en el Capítulo 6 y permite distinguir entre etapas de desarrollo, integración y evaluación funcional.
+
+La secuencia experimental considerada es:
+
+\begin{equation}
+\mathrm{B0.1}
+\rightarrow
+\mathrm{B1.1}
+\rightarrow
+\mathrm{B1.2}
+\rightarrow
+\mathrm{B1.3}
+\rightarrow
+\mathrm{B1.4}
+\rightarrow
+\mathrm{B1.5}
+\rightarrow
+\mathrm{B1.6}
+\rightarrow
+\mathrm{B2}
+\end{equation}
+
+Los ensayos B0.1 y B1.x corresponden principalmente a la evolución del control de corriente y a su integración con la planta. Los ensayos B2.x incorporan el lazo de velocidad y permiten estudiar la respuesta del sistema ante referencias y perturbaciones mecánicas.
+
+Los resultados numéricos presentados corresponden a ejecuciones identificadas y reproducibles. Cuando una etapa corresponde al desarrollo de una función del controlador pero no dispone de un conjunto independiente de métricas registrado, se documenta su función dentro de la secuencia sin asignarle resultados cuantitativos que no hayan sido obtenidos.
+
+\subsection{B0.1 -- Respuesta a escalón de corriente}
+
+El ensayo B0.1 constituye el baseline experimental inicial utilizado para evaluar la respuesta del control de corriente ante una referencia de \(i_q\).
+
+La configuración utilizada fue:
+
+\begin{itemize}
+\item paso temporal: \(\Delta t=50~\mu\mathrm{s}\);
+\item duración: \(0.05~\mathrm{s}\);
+\item instante del escalón: \(0.001~\mathrm{s}\);
+\item referencia: \(i_q^*=10~\mathrm{A}\);
+\item referencia \(i_d^*=0~\mathrm{A}\);
+\item tensión del bus utilizada en el ensayo: \(V_{DC}=600~\mathrm{V}\);
+\item desacoplamiento: \(\lambda_m=0.1100~\mathrm{Wb}\), correspondiente a la configuración histórica de este ensayo.
+\end{itemize}
+
+El resultado obtenido presentó un valor máximo de corriente de \(10.025672~\mathrm{A}\). El sobreimpulso calculado fue de aproximadamente \(0.2567\%\). Los instantes correspondientes al 10,% y 90,% de la referencia fueron aproximadamente \(1.050~\mathrm{ms}\) y \(1.150~\mathrm{ms}\), respectivamente.
+
+Estos resultados se conservan como baseline de desarrollo. Debido a que el ensayo utiliza una configuración histórica de desacoplamiento diferente de la parametrización electromagnética adoptada posteriormente para \texttt{M4\_BASE}, no se utiliza como sustituto de los ensayos posteriores de integración planta--control.
+
+\subsection{B1 -- Evolución del control de corriente}
+
+La serie B1 corresponde a la construcción progresiva del FOC de corriente utilizado posteriormente como controlador de referencia.
+
+\subsubsection{B1.1 -- Control PI de corriente}
+
+La etapa B1.1 establece los controladores PI de las componentes \(d\) y \(q\). La configuración de referencia utiliza:
+
+\begin{equation}
+K_{p,d}=K_{p,q}=15.0796
+\end{equation}
+
+y
+
+\begin{equation}
+K_{i,d}=K_{i,q}=628.3185.
+\end{equation}
+
+La implementación incorpora integración explícita, limitación de tensión y mecanismo de recuperación del estado integral ante saturación. Esta etapa define la estructura básica del regulador que posteriormente se integra con las transformaciones de referencia y el desacoplamiento eléctrico.
+
+No se asignan a esta etapa métricas independientes de desempeño que no hayan sido registradas como un ensayo separado. Su función en la secuencia es establecer el controlador PI que constituye la base de B1.2 y B1.3.
+
+\subsubsection{B1.2 -- Incorporación del desacoplamiento}
+
+En B1.2 se incorpora la compensación de los términos de acoplamiento eléctrico del modelo PMSM.
+
+Las componentes utilizadas son:
+
+\begin{equation}
+v_{d,\mathrm{dec}}
+=
+-\omega_e L_q i_q
+\end{equation}
+
+y
+
+\begin{equation}
+v_{q,\mathrm{dec}}
+=
+\omega_e
+\left(
+L_d i_d+\lambda_m
+\right).
+\end{equation}
+
+Las tensiones aplicadas al modelo resultan de la combinación entre las acciones PI y las componentes de desacoplamiento:
+
+\begin{equation}
+v_d=v_{d,\mathrm{PI}}+v_{d,\mathrm{dec}}
+\end{equation}
+
+\begin{equation}
+v_q=v_{q,\mathrm{PI}}+v_{q,\mathrm{dec}}.
+\end{equation}
+
+Esta etapa completa la estructura eléctrica necesaria para integrar el regulador en el FOC.
+
+\subsubsection{B1.3 -- Integración del FOC}
+
+B1.3 integra las transformaciones de Clarke y Park, los controladores PI y el desacoplamiento eléctrico en una única implementación de FOC.
+
+La posición y velocidad eléctrica se obtienen mediante:
+
+\begin{equation}
+\theta_e=p\theta_m
+\end{equation}
+
+\begin{equation}
+\omega_e=p\omega_m,
+\end{equation}
+
+con \(p=4\) pares de polos para el modelo del motor.
+
+Esta etapa constituye la implementación funcional del FOC de corriente. El controlador recibe las variables trifásicas y las variables mecánicas necesarias para realizar las transformaciones y genera las referencias de tensión que posteriormente son transformadas nuevamente al sistema trifásico.
+
+\subsection{B1.4 -- Integración del FOC con \texttt{M4\_BASE}}
+
+El ensayo B1.4 constituye el primer ensayo integrado entre el FOC y el modelo electromecánico \texttt{M4\_BASE}. Su objetivo es comprobar la coherencia funcional de la cadena completa de control de corriente y planta.
+
+La configuración utilizada fue:
+
+\begin{itemize}
+\item paso temporal: \(\Delta t=50~\mu\mathrm{s}\);
+\item duración: \(0.2~\mathrm{s}\);
+\item número de pasos: \(4000\);
+\item referencia \(i_d^*=0~\mathrm{A}\);
+\item referencia \(i_q^*=10~\mathrm{A}\);
+\item par de carga: \(T_{load}=0~\mathrm{N\,m}\).
+\end{itemize}
+
+Al finalizar el ensayo se obtuvieron los siguientes valores:
+
+\begin{table}[H]
+\centering
+\caption{Estado final registrado en el ensayo B1.4.}
+\label{tab:b1_4_resultado}
+\begin{tabular}{lc}
+\toprule
+\textbf{Variable} & \textbf{Valor final} \\
+\midrule
+\(i_d\) & \(0~\mathrm{A}\) \\
+\(i_q\) & \(10~\mathrm{A}\) \\
+\(\omega_m\) & \(309.237486~\mathrm{rad/s}\) \\
+\(\theta_m\) & \(30.903721~\mathrm{rad}\) \\
+\(T_e\) & \(6.434700~\mathrm{N\,m}\) \\
+\(v_a\) & \(121.818842~\mathrm{V}\) \\
+\(v_b\) & \(-109.145228~\mathrm{V}\) \\
+\(v_c\) & \(-12.673614~\mathrm{V}\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Para \(i_d=0\) y \(L_d=L_q\), la expresión del par utilizada por el modelo se reduce a:
+
+\begin{equation}
+T_e=
+\frac{3}{2}p\lambda_m i_q.
+\end{equation}
+
+Con \(p=4\), \(\lambda_m=0.107245~\mathrm{Wb}\) e \(i_q=10~\mathrm{A}\), esta expresión produce \(T_e=6.434700~\mathrm{N\,m}\), coincidiendo con el valor registrado por el modelo.
+
+El resultado muestra coherencia entre la referencia de corriente, el estado eléctrico, el par electromagnético y la evolución mecánica de \texttt{M4\_BASE}. Por tanto, B1.4 constituye evidencia de consistencia computacional y de funcionamiento integrado del FOC con la planta modelada.
+
+Este resultado no constituye por sí mismo una validación física del motor Siemens 1FT7087. La validación física requiere una comparación independiente con información externa del motor real.
+
+\subsection{B1.5 -- Seguimiento de referencias de corriente}
+
+El ensayo B1.5 evalúa la respuesta del FOC ante cambios sucesivos de la referencia de corriente \(i_q^*\), manteniendo \(i_d^*=0~\mathrm{A}\) y \(T_{load}=0~\mathrm{N\,m}\).
+
+La referencia \(i_q^*\) se modificó de acuerdo con la secuencia:
+
+\begin{equation}
+0
+\rightarrow
+10
+\rightarrow
+20
+\rightarrow
+10~\mathrm{A}.
+\end{equation}
+
+Los cambios de referencia se aplicaron en \(0.05~\mathrm{s}\), \(0.10~\mathrm{s}\) y \(0.15~\mathrm{s}\), respectivamente. El ensayo utilizó \(\Delta t=50~\mu\mathrm{s}\) y una duración total de \(0.2~\mathrm{s}\), equivalente a \(4000\) pasos.
+
+El estado final registrado fue:
+
+\begin{table}[H]
+\centering
+\caption{Estado final registrado en el ensayo B1.5.}
+\label{tab:b1_5_resultado}
+\begin{tabular}{lc}
+\toprule
+\textbf{Variable} & \textbf{Valor final} \\
+\midrule
+\(i_d\) & \(\approx0~\mathrm{A}\) \\
+\(i_q\) & \(10.000007~\mathrm{A}\) \\
+\(\omega_m\) & \(309.314799~\mathrm{rad/s}\) \\
+\(T_e\) & \(6.434705~\mathrm{N\,m}\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El valor final de \(i_q\) presenta una diferencia de aproximadamente \(7\times10^{-6}~\mathrm{A}\) respecto a la referencia final de \(10~\mathrm{A}\). Dentro de la resolución numérica del ensayo, el controlador alcanza la referencia establecida después de la secuencia de cambios.
+
+El experimento proporciona evidencia funcional del seguimiento de referencias de corriente y permite estudiar posteriormente, a partir de las señales temporales completas, los tiempos de respuesta, sobreimpulsos y transitorios asociados a cada cambio de referencia.
+
+\subsection{B1.6 -- Respuesta ante cambios de par de carga}
+
+El ensayo B1.6 evalúa la respuesta del sistema ante perturbaciones mecánicas manteniendo constante la referencia de corriente:
+
+\begin{equation}
+i_d^*=0~\mathrm{A},
+\qquad
+i_q^*=10~\mathrm{A}.
+\end{equation}
+
+El par de carga aplicado siguió la secuencia:
+
+\begin{equation}
+0
+\rightarrow
+5
+\rightarrow
+10
+\rightarrow
+5~\mathrm{N,m},
+\end{equation}
+
+con cambios en \(0.05~\mathrm{s}\), \(0.10~\mathrm{s}\) y \(0.15~\mathrm{s}\), respectivamente.
+
+El ensayo utilizó \(\Delta t=50~\mu\mathrm{s}\), una duración de \(0.2~\mathrm{s}\) y \(4000\) pasos.
+
+El estado final registrado fue:
+
+\begin{table}[H]
+\centering
+\caption{Estado final registrado en el ensayo B1.6.}
+\label{tab:b1_6_resultado}
+\begin{tabular}{lc}
+\toprule
+\textbf{Variable} & \textbf{Valor final} \\
+\midrule
+\(i_d\) & \(\approx0~\mathrm{A}\) \\
+\(i_q\) & \(\approx10~\mathrm{A}\) \\
+\(\omega_m\) & \(68.792775~\mathrm{rad/s}\) \\
+\(T_e\) & \(6.434700~\mathrm{N\,m}\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El resultado muestra que, al mantener constante \(i_q^*\), el controlador conserva la referencia de corriente mientras la perturbación de carga modifica la dinámica mecánica del modelo. La velocidad final resulta considerablemente menor que en B1.4, donde no se aplicó par de carga.
+
+El par electromagnético permanece asociado principalmente a la referencia de corriente. En consecuencia, cuando el par resistente aplicado aumenta, la diferencia entre el par electromagnético disponible y el par de carga modifica la aceleración mecánica y, por tanto, la velocidad alcanzada.
+
+B1.6 proporciona evidencia funcional de la interacción entre el control de corriente y la dinámica mecánica de \texttt{M4\_BASE}. La respuesta temporal completa será utilizada posteriormente para analizar cada perturbación y generar las gráficas correspondientes.
+
+Al igual que en B1.4 y B1.5, estos resultados constituyen evidencia computacional y funcional de la implementación. No deben interpretarse como validación física independiente del motor Siemens 1FT7087.
+
+\subsection{B2 -- Control de velocidad}
+
+La serie B2 incorpora el lazo de velocidad. El controlador de velocidad genera la referencia \(i_q^*\), que posteriormente es procesada por el FOC de corriente.
+
+La relación funcional utilizada es:
+
+\begin{equation}
+e_{\omega}
+=
+\omega_m^*-\omega_m
+\end{equation}
+
+y el controlador PI de velocidad utiliza como parámetros de referencia:
+
+\begin{equation}
+K_{p,\omega}=5.2804
+\end{equation}
+
+\begin{equation}
+K_{i,\omega}=1.2693.
+\end{equation}
+
+La referencia de corriente generada por el lazo de velocidad se encuentra limitada a \(\pm112.43~\mathrm{A}\). Este límite corresponde al controlador y no debe interpretarse como el límite físico de corriente del motor.
+
+\subsubsection{B2.2 -- Regulación de velocidad sin carga}
+
+B2.2 utiliza una referencia de velocidad de:
+
+\begin{equation}
+\omega_m^*=100~\mathrm{rad/s}
+\end{equation}
+
+sin par de carga aplicado.
+
+El estado final registrado fue:
+
+\begin{table}[H]
+\centering
+\caption{Resultado final del ensayo B2.2.}
+\label{tab:b2_2_resultado}
+\begin{tabular}{lc}
+\toprule
+\textbf{Variable} & \textbf{Valor final} \\
+\midrule
+\(\omega_m\) & \(100.005442~\mathrm{rad/s}\) \\
+\(e_{\omega}\) & \(0.005442~\mathrm{rad/s}\) \\
+\(i_q^*\) & \(\approx0~\mathrm{A}\) \\
+\(i_q\) & \(\approx0~\mathrm{A}\) \\
+\(i_d\) & \(0~\mathrm{A}\) \\
+\(T_e\) & \(\approx0~\mathrm{N\,m}\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El error absoluto final de velocidad es de aproximadamente \(0.005442~\mathrm{rad/s}\).
+
+El resultado proporciona evidencia funcional del seguimiento de velocidad en ausencia de par de carga aplicado.
+
+\subsubsection{B2.3 -- Regulación de velocidad con carga}
+
+B2.3 mantiene la referencia:
+
+\begin{equation}
+\omega_m^*=100~\mathrm{rad/s}
+\end{equation}
+
+e introduce un par de carga de:
+
+\begin{equation}
+T_{load}=5~\mathrm{N,m}.
+\end{equation}
+
+El estado final registrado fue:
+
+\begin{table}[H]
+\centering
+\caption{Resultado final del ensayo B2.3.}
+\label{tab:b2_3_resultado}
+\begin{tabular}{lc}
+\toprule
+\textbf{Variable} & \textbf{Valor final} \\
+\midrule
+\(\omega_m\) & \(98.576778~\mathrm{rad/s}\) \\
+\(e_{\omega}\) & \(1.423222~\mathrm{rad/s}\) \\
+\(i_q^*\) & \(7.772570~\mathrm{A}\) \\
+\(i_q\) & \(7.772582~\mathrm{A}\) \\
+\(i_d\) & \(\approx0~\mathrm{A}\) \\
+\(T_e\) & \(5.001423~\mathrm{N\,m}\) \\
+\(T_{load}\) & \(5~\mathrm{N\,m}\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El error final de velocidad corresponde aproximadamente a \(1.4232\%\) respecto a la referencia de \(100~\mathrm{rad/s}\).
+
+El resultado muestra que el lazo de velocidad genera una referencia de \(i_q\) capaz de producir un par electromagnético próximo al par de carga aplicado. Sin embargo, bajo esta condición permanece un error de velocidad. El resultado se interpreta como evidencia del comportamiento funcional del lazo bajo carga y no como demostración de regulación perfecta.
+
+\subsection{B2.4 -- Diagnóstico temporal ante perturbaciones}
+
+El ensayo B2.4 se utiliza para observar con mayor detalle la relación entre error de velocidad, acción integral, referencia \(i_q^*\), corriente \(i_q\) y par electromagnético durante cambios de carga.
+
+Durante el ensayo se aplican cambios de carga en \(0.100~\mathrm{s}\) y \(0.150~\mathrm{s}\), seguidos por una reducción en \(0.175~\mathrm{s}\).
+
+Los puntos representativos registrados son:
+
+\begin{table}[H]
+\centering
+\caption{Puntos representativos del diagnóstico B2.4.}
+\label{tab:b2_4_diagnostico}
+\begin{tabular}{ccccc}
+\toprule
+\(t\) [s] & \(\omega_m\) [rad/s] & \(e_\omega\) [rad/s] & \(i_q^*\) [A] & \(T_e\) [N\,m] \\
+\midrule
+0.100 & 99.9454 & 0.0546 & 0 & -- \\
+0.105 & 98.5508 & 1.4492 & 7.6848 & 4.9433 \\
+0.110 & 98.5368 & 1.4632 & 7.7717 & 5.0008 \\
+0.150 & 98.4906 & 1.5094 & 7.7726 & 5.0014 \\
+0.155 & 97.0978 & 2.9022 & 15.4574 & 9.9448 \\
+0.160 & 97.0855 & 2.9145 & 15.5443 & 10.0023 \\
+0.175 & 97.1559 & 2.8441 & 15.5453 & 10.0029 \\
+0.199 & 98.5764 & 1.4236 & 7.7726 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El diagnóstico permite observar la cadena de acción del control: el incremento del error de velocidad produce un aumento de la referencia \(i_q^*\), que incrementa la corriente \(i_q\) y, consecuentemente, el par electromagnético. La respuesta mecánica depende posteriormente de la dinámica de la planta y de la magnitud del par aplicado.
+
+Este ensayo proporciona una condición reproducible con perturbaciones mecánicas para la comparación posterior de estrategias de control.
+
+\subsection{B2.5 -- Exploración de parámetros del controlador}
+
+B2.5 estudia el efecto de modificaciones del controlador de velocidad sobre el error obtenido durante escenarios definidos de regulación.
+
+En una primera exploración de un segundo de duración se evaluaron factores aplicados a los parámetros históricos del controlador. Para el escenario considerado se obtuvieron los siguientes resultados finales:
+
+\begin{table}[H]
+\centering
+\caption{Exploración B2.5a de parámetros del controlador.}
+\label{tab:b2_5a}
+\begin{tabular}{ccc}
+\toprule
+\textbf{Factor \(K_p,K_i\)} & \(\omega_m\) [rad/s] & \(|e_\omega|\) [rad/s] \\
+\midrule
+1.00000 & 98.825825 & 1.174175 \\
+0.02586 & -61.454688 & 161.454688 \\
+0.05172 & 78.429630 & 21.570370 \\
+0.07758 & 97.150134 & 2.849866 \\
+0.10344 & 99.637635 & 0.362365 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dentro de los factores probados en este escenario, \(0.10344\) presentó el menor error final. Este resultado se considera únicamente una observación de la exploración realizada y no un valor óptimo general del controlador.
+
+Una segunda exploración, realizada sobre un escenario de regulación después del arranque y con cambios de carga entre \(5\) y \(10~\mathrm{N\,m}\), produjo los siguientes resultados:
+
+\begin{table}[H]
+\centering
+\caption{Exploración B2.5c durante regulación con perturbación de carga.}
+\label{tab:b2_5c}
+\begin{tabular}{ccc}
+\toprule
+\textbf{Configuración} & \(\omega_m\) final [rad/s] & \(|e_\omega|\) final [rad/s] \\
+\midrule
+Histórico & 98.6914 & 1.3086 \\
+Factor 2 & -110.9265 & 210.9265 \\
+Factor 4 & 23.0868 & 76.9132 \\
+Factor 6 & 70.6942 & 29.3058 \\
+Factor 8 & 88.9775 & 11.0225 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Los dos escenarios muestran que el efecto de modificar los parámetros del controlador depende de las condiciones iniciales y de la perturbación aplicada. Por ello, los resultados de B2.5 se consideran una exploración de sensibilidad y no una optimización definitiva de los parámetros.
+
+\subsection{Síntesis de los resultados}
+
+Los ensayos realizados permiten identificar una progresión desde la evaluación de componentes individuales del control hasta la integración del FOC con el modelo electromecánico y, posteriormente, la incorporación del lazo de velocidad.
+
+B0.1 proporciona un baseline inicial para la respuesta de corriente. B1.1--B1.3 establecen progresivamente la estructura del FOC mediante los controladores PI, el desacoplamiento y las transformaciones de referencia. B1.4 constituye el primer ensayo integrado entre el FOC y \texttt{M4\_BASE}. B1.5 y B1.6 amplían la evaluación mediante cambios de referencia y perturbaciones de carga.
+
+Los ensayos B2 muestran que el lazo de velocidad puede generar las referencias de corriente necesarias para alcanzar una referencia mecánica y compensar parte del par de carga aplicado. Al mismo tiempo, B2.3 y B2.4 muestran que bajo carga permanece un error de velocidad, proporcionando una condición experimental útil para evaluar posteriormente estrategias de control más avanzadas.
+
+Finalmente, B2.5 muestra que modificar los parámetros del controlador puede producir respuestas diferentes dependiendo del escenario. Por tanto, sus resultados se consideran evidencia de sensibilidad de la configuración y no una optimización definitiva.
+
+En conjunto, los resultados presentados en este capítulo constituyen evidencia computacional y funcional de la implementación desarrollada. La validación física del Digital Twin requiere una etapa independiente de comparación contra referencias externas del motor Siemens 1FT7087, aspecto que se aborda en el capítulo de validación.

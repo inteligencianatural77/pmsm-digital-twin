@@ -1,0 +1,91 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,mexico]{babel}
+\usepackage[letterpaper,margin=2.5cm,top=3cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{siunitx}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc}
+\captionsetup{justification=centering}
+\graphicspath{{figuras/}{figures/}}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=flexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+
+% Resultados generados automáticamente por Python.
+% Este archivo no debe editarse manualmente.
+\IfFileExists{datos/resultados_pmsm.tex}{\input{datos/resultados_pmsm}}{}
+
+% Metadatos
+\newcommand{\DocumentTitle}{Modelado y desarrollo de una arquitectura híbrida de control para un PMSM}
+\newcommand{\DocumentType}{Engineering Technical Report}
+\newcommand{\DocumentID}{PMSM-HC-001}
+\newcommand{\DocumentVersion}{0.2}
+\newcommand{\DocumentStatus}{Technical Development and Architecture Definition}
+\newcommand{\DocumentAuthor}{Ulises Ricardo Jasso Castillo}
+\newcommand{\DocumentDate}{Septiembre 2026}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\Large Instituto Politécnico Nacional\\[0.4cm]}
+{\large Escuela Superior de Ingeniería Mecánica y Eléctrica\\[1.5cm]}
+{\Large \textbf{\DocumentTitle}\\[1cm]}
+\begin{tabular}{>{\bfseries}p{0.30\textwidth}p{0.55\textwidth}}
+Tipo de documento: & \DocumentType \\
+Identificador: & \DocumentID \\
+Versión: & \DocumentVersion \\
+Estado: & \DocumentStatus \\
+Autor: & \DocumentAuthor \\
+Fecha: & \DocumentDate \\
+\end{tabular}
+\vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+
+\input{capitulos/01_proposito_contexto_alcance}
+\input{capitulos/02_caracterizacion_planta}
+\input{capitulos/03_arquitectura_digital_twin}
+\input{capitulos/04_modelo_fisico_m4_base}
+\input{capitulos/05_control_foc}
+\input{capitulos/06_metodologia_reproducibilidad}
+\input{capitulos/07_ensayos_resultados}
+\input{capitulos/08_validacion}
+\input{capitulos/09_control_avanzado}
+\input{capitulos/10_fidelidad_evolucion}
+\input{capitulos/11_conclusiones_continuidad}
+
+\appendix
+% Los anexos A-H se incorporarán posteriormente.
+
+\end{document}

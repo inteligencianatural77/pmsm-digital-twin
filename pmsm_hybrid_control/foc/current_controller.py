@@ -52,6 +52,32 @@ class CurrentController:
         self.int_id = 0.0
         self.int_iq = 0.0
 
+    def apply_conditional_anti_windup(
+        self,
+        error_id: float,
+        error_iq: float,
+        dt: float,
+        vd_requested: float,
+        vq_requested: float,
+        vd_applied: float,
+        vq_applied: float,
+    ) -> None:
+        """Deshace la integración que empuja la tensión hacia la saturación.
+
+        Debe llamarse después de limitar la tensión total, incluida la
+        compensación de desacoplamiento.
+        """
+        if dt <= 0.0:
+            raise ValueError("dt debe ser positivo")
+
+        # Si el error empuja en la misma dirección que el exceso de
+        # tensión de un eje, se deshace la integración de ese eje.
+        if error_id * (vd_requested - vd_applied) > 0.0:
+            self.int_id -= float(error_id) * dt
+
+        if error_iq * (vq_requested - vq_applied) > 0.0:
+            self.int_iq -= float(error_iq) * dt
+
     def update(
         self,
         id_ref: float,

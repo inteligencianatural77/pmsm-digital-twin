@@ -1,0 +1,122 @@
+\section{Alcance y evolución de fidelidad}
+
+\subsection{Nivel de fidelidad adoptado}
+
+El Digital Twin desarrollado se basa actualmente en el modelo PMSM \texttt{M4\_BASE}, cuya representación corresponde a un modelo de parámetros concentrados con inductancias constantes y acoplamiento mutuo constante. Esta elección establece el nivel de fidelidad utilizado durante la implementación y los ensayos presentados en este reporte.
+
+El objetivo del nivel \texttt{M4\_BASE} es proporcionar una representación matemática coherente de la planta Siemens 1FT7087 que permita estudiar su comportamiento eléctrico y electromecánico, así como disponer de una plataforma reproducible para el desarrollo y evaluación de estrategias de control.
+
+La fidelidad del Digital Twin no debe evaluarse únicamente por la cantidad de fenómenos físicos incluidos. También debe considerarse su adecuación al propósito para el cual se utiliza el modelo. Un modelo de mayor complejidad no constituye necesariamente una mejora si los parámetros adicionales no cuentan con una procedencia verificable o si su incorporación dificulta la interpretación de los resultados.
+
+Por esta razón, el nivel de fidelidad adoptado responde a una decisión de ingeniería vinculada al objetivo actual del Digital Twin.
+
+\subsection{Fenómenos representados}
+
+La formulación \texttt{M4\_BASE} representa los principales fenómenos necesarios para la evaluación funcional del accionamiento:
+
+\begin{itemize}
+\item dinámica de las corrientes en los ejes $d$ y $q$;
+\item resistencia eléctrica del estator;
+\item inductancias $L_d$ y $L_q$;
+\item flujo permanente del imán;
+\item relación entre posición y velocidad mecánica y las variables eléctricas;
+\item generación del par electromagnético;
+\item dinámica mecánica asociada al momento de inercia;
+\item aplicación de un par de carga externo;
+\item transformaciones entre referencias trifásica, estacionaria y rotatoria.
+\end{itemize}
+
+Con $L_d=L_q$ para la parametrización activa, el término de par de reluctancia de la formulación clásica se anula. El par electromagnético queda, por tanto, dominado por la interacción entre el flujo permanente y la componente $q$ de la corriente.
+
+La representación utilizada permite estudiar la interacción entre la planta y el FOC sin introducir fenómenos cuya parametrización no haya sido establecida de forma suficiente para el objetivo actual.
+
+\subsection{Fenómenos no incluidos en el nivel actual}
+
+El modelo \texttt{M4\_BASE} no pretende representar todos los fenómenos presentes en una máquina eléctrica real. Entre los aspectos que permanecen fuera de la formulación actual se encuentran:
+
+\begin{itemize}
+\item saturación magnética;
+\item variación no lineal de $L_d$ y $L_q$;
+\item mapas magnéticos dependientes del punto de operación;
+\item armónicos espaciales y temporales;
+\item pérdidas detalladas en hierro;
+\item pérdidas adicionales dependientes de la frecuencia;
+\item efectos térmicos acoplados a la dinámica eléctrica y mecánica;
+\item modelos detallados de fricción y par resistente interno;
+\item representación FEM directa del campo electromagnético.
+\end{itemize}
+
+La ausencia de estos fenómenos no debe interpretarse como una afirmación de que sean irrelevantes para el motor real. Significa que no forman parte del nivel de representación seleccionado para los objetivos actuales del Digital Twin.
+
+Cuando alguno de estos fenómenos resulte necesario para explicar una discrepancia experimental, estudiar una región específica de operación o evaluar una estrategia de control que dependa de ellos, podrá incorporarse como una extensión identificable del modelo.
+
+\subsection{Evolución de la fidelidad}
+
+La evolución prevista del Digital Twin se organiza como una ruta de posibles extensiones, en la que cada incremento de complejidad debe estar respaldado por información adicional y por una necesidad concreta de ingeniería.
+
+La ruta general puede expresarse como:
+
+\begin{center}
+\texttt{M4\_BASE}
+$\rightarrow$
+\texttt{MAPAS}
+$\rightarrow$
+\texttt{NO\_LINEAL}
+$\rightarrow$
+\texttt{FEM/ROM}
+$\rightarrow$
+\texttt{Digital Twin ampliado}
+\end{center}
+
+El primer nivel de evolución corresponde a la incorporación de mapas o relaciones dependientes del punto de operación. Posteriormente pueden incorporarse modelos no lineales de inductancias, flujo y par cuando existan datos suficientes para parametrizarlos.
+
+Una etapa posterior puede utilizar información obtenida mediante métodos de elementos finitos (FEM) o modelos reducidos (ROM). En este caso, el objetivo sería aumentar la fidelidad electromagnética conservando, en la medida de lo posible, una representación adecuada para simulaciones y evaluación de control.
+
+Cada transición debe conservar la correspondencia entre:
+
+\begin{enumerate}
+\item la información de origen;
+\item el fenómeno físico que se pretende representar;
+\item el parámetro o mapa incorporado;
+\item la modificación matemática introducida;
+\item el experimento utilizado para comprobar su efecto.
+\end{enumerate}
+
+De esta forma, la evolución de fidelidad no se reduce a añadir complejidad al modelo, sino que constituye una ampliación controlada y verificable de la representación de la planta.
+
+\subsection{Criterio para incorporar nueva fidelidad}
+
+La incorporación de una nueva capa de fidelidad debe justificarse mediante una necesidad observable. Entre las situaciones que pueden motivarla se encuentran:
+
+\begin{itemize}
+\item una discrepancia sistemática frente a una referencia independiente;
+\item la necesidad de representar una región de operación que \texttt{M4\_BASE} no describa adecuadamente;
+\item una estrategia de control cuyo desempeño dependa explícitamente de fenómenos no representados;
+\item la disponibilidad de nuevos datos experimentales o mapas con procedencia verificable;
+\item la necesidad de estudiar límites eléctricos, térmicos o electromagnéticos con mayor detalle.
+\end{itemize}
+
+Este criterio evita introducir parámetros o fenómenos únicamente para aumentar la complejidad aparente del Digital Twin.
+
+La decisión de ampliar el modelo deberá considerar simultáneamente la disponibilidad de información, la calidad de su procedencia, el costo computacional y la utilidad de la nueva representación para el problema de ingeniería estudiado.
+
+\subsection{Fidelidad de la planta y capacidad de evaluación del control}
+
+Debe distinguirse entre la fidelidad física de la planta y la capacidad del modelo para evaluar una estrategia de control.
+
+Una planta digital puede ser suficientemente representativa para estudiar una determinada función de control sin reproducir todos los fenómenos físicos de la máquina real. Del mismo modo, una estrategia de control puede requerir posteriormente una representación más detallada si su desempeño depende de fenómenos que el modelo actual no incluye.
+
+Por esta razón, la evaluación del control y la evolución de la planta deben mantenerse conceptualmente separadas. El FOC utilizado como línea base se evalúa sobre \texttt{M4\_BASE} bajo condiciones experimentales definidas. Las futuras estrategias MPC, ANFIS y TinyML deberán compararse inicialmente sobre la misma referencia para evitar confundir cambios de comportamiento del controlador con cambios de modelo.
+
+Posteriormente, cuando exista una justificación física, una nueva versión del Digital Twin podrá utilizarse para evaluar la sensibilidad de las estrategias frente a fenómenos adicionales.
+
+\subsection{Escalabilidad y trazabilidad del Digital Twin}
+
+La arquitectura desarrollada busca evitar que la evolución del modelo físico requiera modificar de forma innecesaria la estructura completa del sistema. La separación entre planta, interfaz y control facilita que una nueva representación de la máquina pueda incorporarse manteniendo la lógica experimental y los criterios de evaluación.
+
+Esta propiedad resulta especialmente importante para la continuidad del proyecto. El Digital Twin no se considera una implementación cerrada, sino una representación con un nivel de fidelidad definido y una ruta de evolución documentada.
+
+Cada ampliación deberá conservar la identificación de la versión del modelo, los parámetros utilizados, las ecuaciones o mapas incorporados, las condiciones de simulación y los resultados obtenidos. De esta manera, las diferentes versiones podrán compararse sin perder la relación entre el modelo, la evidencia y la decisión de ingeniería que motivó su modificación.
+
+En consecuencia, el nivel de fidelidad actual debe entenderse como una base funcional y reproducible sobre la cual puede construirse una representación progresivamente más detallada del motor Siemens 1FT7087 cuando la evidencia disponible y los objetivos del proyecto lo requieran.
+

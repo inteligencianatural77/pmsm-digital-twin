@@ -76,13 +76,20 @@ class FOC:
         self.lq = float(lq)
         self.lambda_m = float(lambda_m)
         self.pole_pairs = int(pole_pairs)
+        if voltage_limit is not None and voltage_limit <= 0.0:
+            raise ValueError("voltage_limit debe ser positivo")
+
+        # El límite se aplica a la tensión dq total, después del desacoplamiento.
+        self.voltage_limit = (
+            None if voltage_limit is None else float(voltage_limit)
+        )
 
         self.current_controller = CurrentController(
             kp_id=kp_id,
             ki_id=ki_id,
             kp_iq=kp_iq,
             ki_iq=ki_iq,
-            voltage_limit=voltage_limit,
+            voltage_limit=None,
         )
 
         self.decoupling = Decoupling()
@@ -138,9 +145,13 @@ class FOC:
             theta_e,
         )
 
-        # PI de corriente.
-        # El desacoplamiento se aplica SOLO después del PI para evitar
-        # contabilizarlo dos veces.
+        # Guardar los errores y estados integrales para aplicar anti-windup
+        # después de conocer la saturación de la tensión dq total.
+        error_id = float(id_ref) - id_meas
+        error_iq = float(iq_ref) - iq_meas
+
+        # PI de corriente sin saturación por eje.
+        # El desacoplamiento se aplica SOLO después del PI.
         vd_pi, vq_pi = self.current_controller.update(
             id_ref=id_ref,
             iq_ref=iq_ref,
@@ -160,6 +171,25 @@ class FOC:
             lq=self.lq,
             lambda_m=self.lambda_m,
         )
+
+        # Saturación vectorial de la orden total dq.
+        vd_requested, vq_requested = vd, vq
+        if self.voltage_limit is not None:
+            magnitude = (vd * vd + vq * vq) ** 0.5
+            if magnitude > self.voltage_limit:
+                scale = self.voltage_limit / magnitude
+                vd *= scale
+                vq *= scale
+
+                self.current_controller.apply_conditional_anti_windup(
+                    error_id=error_id,
+                    error_iq=error_iq,
+                    dt=dt,
+                    vd_requested=vd_requested,
+                    vq_requested=vq_requested,
+                    vd_applied=vd,
+                    vq_applied=vq,
+                )
 
         # dq -> alpha-beta
         v_alpha, v_beta = inverse_park_transform(

@@ -55,7 +55,6 @@ def main():
                 vb=vb,
                 vc=vc,
                 t_load=t_load,
-                theta_m=theta_m,
             ),
             dt=DT,
         )

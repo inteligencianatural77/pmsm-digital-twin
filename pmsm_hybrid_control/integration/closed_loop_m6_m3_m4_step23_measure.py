@@ -32,7 +32,7 @@ def main() -> None:
         # Valores del M6 CloudE recuperado
         ld=0.0012,
         lq=0.0012,
-        lambda_m=0.1100,
+        lambda_m=0.107245,
         pole_pairs=4,
         kp_speed=5.2804,
         ki_speed=1.2693,
@@ -134,7 +134,6 @@ def main() -> None:
                 vb=vb,
                 vc=vc,
                 t_load=t_load_now,
-                theta_m=theta_m,
             ),
             dt=dt,
         )

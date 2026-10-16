@@ -1,0 +1,59 @@
+\section{Propósito, contexto y alcance}
+
+\subsection{Contexto del desarrollo}
+
+El presente trabajo desarrolla una representación computacional de un motor síncrono de imanes permanentes (PMSM) Siemens 1FT7087 con el propósito de establecer una plataforma reproducible para el desarrollo y evaluación de estrategias de control.
+
+El desarrollo comprende la caracterización de la planta, la investigación y análisis de la información disponible del motor, la formulación de relaciones físicas y matemáticas, la interpretación, conversión y derivación de parámetros, la parametrización del modelo, su implementación computacional y la realización de experimentos reproducibles.
+
+La arquitectura fue desarrollada y validada inicialmente mediante Simulink, constituyendo una referencia para la posterior implementación reproducible del Digital Twin. La implementación en Python permite establecer un entorno independiente para la ejecución, registro y repetición de los experimentos bajo configuraciones explícitas.
+
+\subsection{Problemática de ingeniería}
+
+El desarrollo de estrategias avanzadas de control requiere una representación de la planta que mantenga una relación coherente entre sus parámetros, variables de estado, entradas, salidas, condiciones de operación y resultados experimentales.
+
+En este contexto, la problemática no se limita a disponer de los datos nominales del motor, sino a establecer una representación computacional trazable en la que la información de la planta pueda relacionarse con su formulación física y matemática, su implementación y las condiciones bajo las cuales se obtienen los resultados.
+
+Esta representación debe permitir, además, utilizar una misma planta de referencia para desarrollar y evaluar diferentes estrategias de control, evitando que las diferencias observadas entre estrategias se atribuyan a cambios no controlados en la representación de la planta o en las condiciones experimentales.
+
+\subsection{Propósito del Digital Twin}
+
+El propósito del Digital Twin es proporcionar una representación computacional específica del motor Siemens 1FT7087 que sirva como plataforma común para el desarrollo y evaluación de estrategias de control.
+
+La planta PMSM implementada como M4\_BASE constituye el núcleo funcional actual de esta representación. Su formulación mediante parámetros concentrados proporciona el nivel de representación requerido para el objetivo actual de desarrollo y evaluación del control, manteniendo explícitas las relaciones entre los parámetros adoptados, las variables del modelo y las condiciones de operación.
+
+El nivel de fidelidad del Digital Twin no se establece por la incorporación de la mayor cantidad posible de fenómenos o parámetros, sino de acuerdo con la información requerida por el objetivo de ingeniería. La representación puede ampliarse de forma trazable cuando una estrategia de control o un fenómeno de interés requiera información adicional.
+
+\subsection{Alcance del reporte}
+
+El reporte comprende la caracterización y trazabilidad de la planta PMSM, la definición de la arquitectura del Digital Twin, la formulación e implementación del modelo físico M4\_BASE, la definición de la interfaz entre planta y control, y el establecimiento de un controlador FOC como referencia experimental.
+
+También se documentan la metodología experimental y de reproducibilidad, los ensayos realizados y sus resultados, los criterios de validación utilizados y la distinción entre consistencia computacional, evidencia funcional, reproducibilidad y validación física.
+
+Finalmente, se establece la ruta de evolución hacia estrategias de control avanzado y la forma en que puede ampliarse la fidelidad de la representación de la planta de acuerdo con las necesidades futuras del desarrollo.
+
+\subsection{Metodología general de desarrollo}
+
+El desarrollo sigue una cadena de trabajo orientada a mantener la trazabilidad entre la planta real, su representación computacional y la evidencia experimental obtenida:
+
+\begin{center}
+\textit{investigación}
+$\rightarrow$
+\textit{análisis}
+$\rightarrow$
+\textit{cálculo y derivación}
+$\rightarrow$
+\textit{parametrización}
+$\rightarrow$
+\textit{formulación}
+$\rightarrow$
+\textit{implementación}
+$\rightarrow$
+\textit{experimentación}
+$\rightarrow$
+\textit{evaluación}.
+\end{center}
+
+Esta secuencia permite diferenciar los datos de origen de los parámetros derivados, las formulaciones adoptadas, las decisiones de implementación y los resultados obtenidos mediante experimentación computacional.
+
+La metodología se mantiene como referencia común durante la evolución del Digital Twin, de manera que las modificaciones de la representación de la planta o de la estrategia de control puedan conservar condiciones experimentales identificables y resultados trazables.

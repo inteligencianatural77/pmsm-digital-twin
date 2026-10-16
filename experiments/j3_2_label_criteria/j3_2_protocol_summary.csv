@@ -1,0 +1,36 @@
+protocol,version,section,item,value,source
+J3.2,0.2,status,status,FROZEN,J3.2
+J3.2,0.2,architecture,anfis_inputs,"error_w, delta_error_w, abs_iq",architecture
+J3.2,0.2,architecture,anfis_outputs,"kp_adapt, ki_adapt",architecture
+J3.2,0.2,metadata,metadata_fields,"scenario, transition",experimental_traceability
+J3.2,0.2,metadata,metadata_role,"Los metadatos experimentales se conservan para trazabilidad y análisis, pero no forman parte de las entradas ANFIS.",J3.2
+J3.2,0.2,current,physical_current_limit_A,79.5,M4/documented motor limit
+J3.2,0.2,current,controller_iq_ref_limit_A,112.43,speed_controller
+J3.2,0.2,current,physical_feasibility_rule,Una configuración es físicamente factible si la corriente medida max(|iq|) durante la ventana de evaluación no supera 79.5 A.,J3.2
+J3.2,0.2,current,iq_ref_semantics,iq_ref representa la referencia generada por el lazo de velocidad y no se considera equivalente a la corriente física del motor.,J3.2
+J3.2,0.2,gains,kp_base,5.2804,speed_controller
+J3.2,0.2,gains,ki_base,1.2693,speed_controller
+J3.2,0.2,gains,kp_range,"[2.6402000, 10.5608000]",J3.1 candidate envelope
+J3.2,0.2,gains,ki_range,"[0.6346500, 2.5386000]",J3.1 candidate envelope
+J3.2,0.2,gains,candidate_rule,Las etiquetas J3.3 se generan únicamente a partir de las configuraciones candidatas discretas del barrido J3.1.,J3.2
+J3.2,0.2,temporal,window_duration_s,0.01,J3.2
+J3.2,0.2,temporal,window_rule,La evaluación local se realiza sobre una ventana temporal de 10 ms asociada al estado observable. La ventana se utiliza como decisión metodológica y no se interpreta como una constante física del motor.,J3.2
+J3.2,0.2,selection,selection_method,LEXICOGRAPHIC,J3.2
+J3.2,0.2,selection,selection_stages,1. Factibilidad de corriente física. | 2. Mínimo MAE de velocidad. | 3. Mínimo esfuerzo asociado a iq_ref en caso de equivalencia. | 4. Estado ambiguo si persiste la equivalencia.,J3.2
+J3.2,0.2,selection,error_metric,MAE,J3.2
+J3.2,0.2,selection,error_definition,J_error = mean(abs(error_w)) dentro de la ventana de evaluación.,J3.2
+J3.2,0.2,selection,current_reference_metric,MEAN_ABS_IQ_REF,J3.2
+J3.2,0.2,selection,current_reference_definition,J_current_reference = mean(abs(iq_ref)) dentro de la ventana de evaluación.,J3.2
+J3.2,0.2,selection,error_tolerance,0.0100,J3.2
+J3.2,0.2,selection,error_tolerance_rule,Dos configuraciones se consideran equivalentes respecto al MAE si la diferencia relativa entre sus valores es <= 1 % respecto al menor MAE positivo.,J3.2
+J3.2,0.2,selection,ambiguity_rule,"Si después del criterio secundario permanecen varias candidatas indistinguibles, no se fuerza una etiqueta y el estado se marca como AMBIGUOUS.",J3.2
+J3.2,0.2,labeling,label_status,NOT_GENERATED,J3.2
+J3.2,0.2,labeling,ambiguous_label_status,NO_LABEL,J3.2
+J3.2,0.2,training,training_status,NOT_STARTED,J3.2
+J3.2,0.2,dataset,required_temporal_fields,"t, scenario, transition, kp_factor, ki_factor, kp, ki, omega_ref, omega_m, error_w, delta_error_w, iq, iq_ref, te",J3.3 requirement
+J3.2,0.2,provenance,source_chain,B2.5 -> J3.1 -> J3.2 -> J3.3 -> J3.4 -> entrenamiento ANFIS,project workflow
+J3.2,0.2,provenance,B2_5_role,B2.5 proporciona la exploración de sensibilidad y las métricas de las configuraciones evaluadas.,J3.2
+J3.2,0.2,provenance,J3_1_role,J3.1 proporciona el catálogo reproducible de configuraciones candidatas. No proporciona directamente etiquetas estado->ganancia.,J3.2
+J3.2,0.2,provenance,J3_2_role,J3.2 define cómo una configuración candidata puede convertirse en etiqueta para un estado observable.,J3.2
+J3.2,0.2,catalog,J3_1_catalog_rows,49,experiments/j3_1_label_criteria/j3_1_configuration_catalog.csv
+J3.2,0.2,catalog,unique_candidates,49,experiments/j3_1_label_criteria/j3_1_configuration_catalog.csv

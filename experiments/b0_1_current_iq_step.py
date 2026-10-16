@@ -94,7 +94,7 @@ def main() -> None:
             omega_e=omega_e,
             ld=plant.params.ld,
             lq=plant.params.lq,
-            lambda_m=0.1100,  # referencia histórica M6
+            lambda_m=0.107245,  # valor activo del modelo PMSM [Wb]
         )
 
         v_max = 0.95 * VDC / math.sqrt(3.0)
@@ -128,7 +128,6 @@ def main() -> None:
                 vb=vb,
                 vc=vc,
                 t_load=0.0,
-                theta_m=theta_m,
             ),
             DT,
         )

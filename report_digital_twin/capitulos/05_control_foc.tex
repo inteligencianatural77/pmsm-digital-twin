@@ -1,0 +1,267 @@
+\section{Control FOC}
+
+\subsection{Función del FOC dentro del Digital Twin}
+
+El control orientado al campo (Field Oriented Control, FOC) constituye la estrategia de control de referencia utilizada sobre la planta PMSM del Digital Twin. Su función es establecer una relación reproducible entre las referencias de corriente, las corrientes medidas de la máquina y las tensiones trifásicas aplicadas a la planta.
+
+Dentro de la arquitectura desarrollada, el FOC se mantiene separado del modelo físico del motor. La planta representa el comportamiento eléctrico y mecánico del PMSM, mientras que el FOC constituye una capa externa de control que recibe las variables necesarias de la planta y genera las tensiones de accionamiento.
+
+Esta separación permite utilizar la misma representación de planta para evaluar posteriormente otras estrategias de control, manteniendo constantes el modelo físico, las condiciones iniciales, los escenarios experimentales y los criterios de evaluación.
+
+\subsection{Control de corriente}
+
+El núcleo del FOC está constituido por dos controladores PI independientes para las componentes de corriente en el sistema de referencia rotante:
+
+\begin{equation}
+e_d = i_d^{*}-i_d
+\end{equation}
+
+\begin{equation}
+e_q = i_q^{*}-i_q
+\end{equation}
+
+donde $i_d^{*}$ e $i_q^{*}$ representan las referencias de corriente y $i_d$, $i_q$ corresponden a las corrientes obtenidas mediante las transformaciones de referencia.
+
+Las acciones PI se expresan mediante:
+
+\begin{equation}
+v_{d,PI}=K_{p,d}e_d+K_{i,d}\int e_d,dt
+\end{equation}
+
+\begin{equation}
+v_{q,PI}=K_{p,q}e_q+K_{i,q}\int e_q,dt
+\end{equation}
+
+Los controladores actúan sobre las componentes $d$ y $q$ antes de incorporar los términos de desacoplamiento correspondientes al modelo eléctrico.
+
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\input{figuras/foc_lazo_corriente}
+}
+\caption{Arquitectura funcional del lazo de corriente del FOC.}
+\label{fig:foc_lazo_corriente}
+\end{figure}
+
+\subsection{Referencias de corriente}
+
+Las referencias $i_d^{*}$ e $i_q^{*}$ son variables de entrada del controlador y no parámetros de la planta.
+
+Para los ensayos de corriente utilizados como referencia, se emplea:
+
+\begin{equation}
+i_d^{*}=0
+\end{equation}
+
+mientras que $i_q^{*}$ se establece de acuerdo con el escenario experimental.
+
+Esta separación permite modificar las referencias sin modificar la parametrización del PMSM y permite construir ensayos de seguimiento, perturbación y regulación bajo una misma configuración de planta.
+
+En los ensayos de regulación de velocidad, el controlador de velocidad genera la referencia $i_q^{*}$ a partir del error de velocidad. Por tanto, el FOC de corriente permanece como la capa que convierte dicha referencia en las tensiones necesarias para accionar la planta.
+
+\subsection{Controladores PI}
+
+Los valores de referencia utilizados inicialmente para los controladores de corriente son:
+
+\begin{equation}
+K_{p,d}=K_{p,q}=15.0796
+\end{equation}
+
+\begin{equation}
+K_{i,d}=K_{i,q}=628.3185
+\end{equation}
+
+Estos valores corresponden a la configuración histórica utilizada como referencia para el controlador y no deben confundirse con parámetros físicos del motor.
+
+Su función dentro del Digital Twin es proporcionar una configuración de control reproducible que permita evaluar el comportamiento de la planta y establecer una referencia para experimentos posteriores.
+
+La implementación utiliza integración explícita de la acción integral y contempla saturación de tensión cuando se establece un límite de tensión para el controlador. Cuando existe saturación, se utiliza una acción anti-windup mediante la recuperación del estado integral del eje afectado.
+
+\subsection{Desacoplamiento eléctrico}
+
+La acción PI se complementa con los términos de desacoplamiento derivados de las ecuaciones eléctricas de la máquina.
+
+Para el eje $d$ se utiliza:
+
+\begin{equation}
+v_{d,dec}=-\omega_e L_q i_q
+\end{equation}
+
+y para el eje $q$:
+
+\begin{equation}
+v_{q,dec}=\omega_e\left(L_d i_d+\lambda_m\right)
+\end{equation}
+
+donde $\omega_e$ representa la velocidad eléctrica, $L_d$ y $L_q$ las inductancias de los ejes directo y en cuadratura, y $\lambda_m$ el enlace de flujo adoptado para la representación del PMSM.
+
+Las tensiones de referencia en el sistema $dq$ se obtienen combinando la acción PI y los términos de desacoplamiento:
+
+\begin{equation}
+v_d=v_{d,PI}+v_{d,dec}
+\end{equation}
+
+\begin{equation}
+v_q=v_{q,PI}+v_{q,dec}
+\end{equation}
+
+La separación explícita entre PI y desacoplamiento permite distinguir la acción de regulación de corriente de la compensación asociada al acoplamiento eléctrico del modelo.
+
+\subsection{Transformaciones de referencia}
+
+El FOC utiliza las corrientes trifásicas de la planta como variables de entrada. Estas corrientes se transforman desde el sistema $abc$ hacia un sistema estacionario $\alpha\beta$ y posteriormente hacia el sistema rotante $dq$.
+
+La transformación rotante utiliza:
+
+\begin{equation}
+\theta_e=p\theta_m
+\end{equation}
+
+donde $p=4$ corresponde al número de pares de polos adoptado para el modelo del Siemens 1FT7087.
+
+De manera equivalente, la velocidad eléctrica se obtiene mediante:
+
+\begin{equation}
+\omega_e=p\omega_m
+\end{equation}
+
+La convención de referencia utilizada es:
+
+\begin{center}
+\texttt{QleadsD\_AphaseToDaxis}
+\end{center}
+
+Esta convención se mantiene explícita porque las transformaciones de Clarke y Park dependen de la definición de ejes, signos y referencia angular. Mantenerla fija es necesario para conservar la coherencia entre el modelo de planta y el controlador.
+
+\subsection{Generación de tensiones trifásicas}
+
+Después de calcular las componentes $v_d$ y $v_q$, el FOC realiza las transformaciones inversas hacia el sistema estacionario y posteriormente hacia el sistema trifásico.
+
+El resultado del bloque de control es:
+
+\begin{equation}
+\left\{v_a,v_b,v_c\right\}
+\end{equation}
+
+Estas tres tensiones constituyen las variables que el FOC entrega a la planta mediante la interfaz funcional C-01.
+
+La planta utiliza estas tensiones junto con el par resistente externo $T_{load}$ para avanzar el estado del modelo PMSM.
+
+\subsection{Interfaz funcional C-01}
+
+La frontera funcional entre la planta y el FOC se establece mediante ocho señales conceptuales:
+
+\begin{equation}
+\left\{
+i_a,i_b,i_c,\theta_m,\omega_m
+\right\}
+\longrightarrow
+\mathrm{FOC}
+\end{equation}
+
+y:
+
+\begin{equation}
+\mathrm{FOC}
+\longrightarrow
+\left\{
+v_a,v_b,v_c
+\right\}
+\end{equation}
+
+La interfaz de ocho señales representa la función de intercambio entre ambos bloques. No implica que todas ellas correspondan directamente a los mismos campos de una estructura de software.
+
+En la implementación actual, las variables de entrada del modelo de planta son $v_a$, $v_b$, $v_c$ y $T_{load}$, mientras que $\theta_m$ permanece como estado interno de la planta y se entrega mediante \texttt{PlantOutput}. El FOC utiliza dicho valor para realizar las transformaciones de referencia.
+
+De esta manera, la frontera funcional y la interfaz de implementación permanecen conceptualmente relacionadas sin forzar una correspondencia artificial entre ambas.
+
+\subsection{Lazo de velocidad}
+
+Para los ensayos de regulación de velocidad se incorpora un controlador PI externo al lazo de corriente. Su función es generar la referencia $i_q^{*}$ a partir del error entre la velocidad de referencia y la velocidad mecánica de la planta:
+
+\begin{equation}
+e_{\omega}=\omega^{*}-\omega_m
+\end{equation}
+
+La acción del controlador de velocidad se expresa como:
+
+\begin{equation}
+i_q^{*}=K_{p,\omega}e_{\omega}
++
+K_{i,\omega}\int e_{\omega},dt
+\end{equation}
+
+Los valores históricos utilizados como referencia son:
+
+\begin{equation}
+K_{p,\omega}=5.2804
+\end{equation}
+
+\begin{equation}
+K_{i,\omega}=1.2693
+\end{equation}
+
+La implementación contempla un límite de referencia:
+
+\begin{equation}
+-112.43\leq i_q^{*}\leq112.43\ \mathrm{A}
+\end{equation}
+
+Este límite corresponde al rango de referencia utilizado por el controlador de velocidad y **no constituye por sí mismo un límite físico de corriente del motor**.
+
+La distinción es necesaria para evitar confundir una decisión de configuración del controlador con una especificación eléctrica de la máquina.
+
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\input{figuras/foc_lazo_velocidad}
+}
+\caption{Arquitectura del lazo externo de velocidad y su interacción con el FOC y la planta M4\_BASE.}
+\label{fig:foc_lazo_velocidad}
+\end{figure}
+
+\subsection{Base temporal del control}
+
+El FOC se ejecuta dentro del mismo esquema temporal utilizado para los experimentos de la planta. La configuración de referencia emplea:
+
+\begin{equation}
+\Delta t=50\ \mu\mathrm{s}
+\end{equation}
+
+El mismo intervalo temporal se utiliza para avanzar la planta y actualizar las variables del controlador en los ensayos correspondientes.
+
+Esta condición permite mantener una configuración temporal explícita y reproducible. El intervalo adoptado representa una decisión de implementación experimental y no se interpreta por sí mismo como una propiedad física del motor.
+
+\subsection{FOC como referencia experimental}
+
+El FOC constituye la estrategia de referencia sobre la cual se organiza la evaluación de las estrategias de control posteriores. Su función no es representar el objetivo final de control, sino proporcionar una base funcional común sobre la cual comparar modificaciones y estrategias alternativas.
+
+La cadena de control queda definida conceptualmente como:
+
+\begin{equation}
+\omega^{*}
+\rightarrow
+\mathrm{PI}_{\omega}
+\rightarrow
+i_q^{*}
+\rightarrow
+\mathrm{FOC}
+\rightarrow
+{v_a,v_b,v_c}
+\rightarrow
+\mathrm{PMSM}
+\end{equation}
+
+Para los ensayos exclusivamente eléctricos, la referencia de corriente puede aplicarse directamente al FOC sin utilizar el lazo de velocidad.
+
+Esta organización permite mantener separados tres niveles:
+
+\begin{enumerate}
+\item la representación física y computacional de la planta;
+\item el control de referencia basado en FOC;
+\item las estrategias de control que posteriormente podrán evaluarse sobre la misma planta.
+\end{enumerate}
+
+Por tanto, el FOC establece la referencia funcional y experimental del Digital Twin para la evaluación posterior de MPC, ANFIS y TinyML, sin modificar la definición de la planta PMSM.

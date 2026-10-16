@@ -1,0 +1,310 @@
+\section{Modelo físico PMSM M4\_BASE}
+
+\subsection{Representación matemática}
+
+El modelo M4\_BASE constituye la representación matemática y computacional de la planta PMSM utilizada como núcleo funcional del Digital Twin. Su formulación se basa en una representación de parámetros concentrados de la máquina Siemens 1FT7087, utilizando las magnitudes eléctricas y mecánicas establecidas durante la caracterización de la planta.
+
+El modelo tiene como objetivo representar las relaciones dinámicas necesarias para desarrollar y evaluar el control del motor. En esta etapa se consideran las dinámicas eléctricas de los ejes $d$ y $q$, la dinámica mecánica del rotor y la evolución de la posición mecánica.
+
+La formulación se mantiene explícita para conservar la trazabilidad entre los parámetros de la máquina, las ecuaciones utilizadas, los estados internos y las variables intercambiadas con la capa de control.
+
+El modelo se implementa como una representación PMSM de inductancias constantes y mutualidad constante. Por tanto, no constituye un solucionador electromagnético FEM ni incorpora directamente mapas no lineales obtenidos mediante simulación de elementos finitos.
+
+\subsection{Modelo eléctrico}
+
+El comportamiento eléctrico se representa en el marco rotante $d$--$q$. Las ecuaciones adoptadas para la evolución de las corrientes son
+
+\begin{equation}
+\frac{di_d}{dt}
+=
+\frac{v_d-R_s i_d+\omega_e L_q i_q}{L_d},
+\end{equation}
+
+y
+
+\begin{equation}
+\frac{di_q}{dt}
+=
+\frac{v_q-R_s i_q-\omega_e(L_d i_d+\lambda_m)}
+{L_q}.
+\end{equation}
+
+Estas expresiones relacionan las tensiones de los ejes rotantes con las corrientes, la resistencia estatórica, las inductancias, la velocidad eléctrica y el flujo permanente del imán.
+
+Para la planta caracterizada en este trabajo se adopta
+
+\begin{equation}
+L_d=L_q=0.0012~\mathrm{H}.
+\end{equation}
+
+La igualdad de ambas inductancias simplifica la representación del par electromagnético al eliminar el término de reluctancia asociado a $L_d-L_q$.
+
+La velocidad eléctrica se obtiene a partir de la velocidad mecánica mediante
+
+\begin{equation}
+\omega_e=p\omega_m,
+\end{equation}
+
+donde $p=4$ corresponde al número de pares de polos utilizado por el modelo.
+
+\subsection{Variables eléctricas y mecánicas}
+
+Los estados principales de la representación de planta son
+
+\begin{equation}
+\mathbf{x}
+=
+\begin{bmatrix}
+i_d &
+i_q &
+\omega_m &
+\theta_m
+\end{bmatrix}^{T}.
+\end{equation}
+
+Estos estados permiten describir la evolución de las corrientes en el marco rotante, la velocidad mecánica y la posición mecánica del rotor.
+
+La posición eléctrica utilizada en las transformaciones se calcula mediante
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+Las variables trifásicas se representan mediante $i_a$, $i_b$, $i_c$ para las corrientes y $v_a$, $v_b$, $v_c$ para las tensiones.
+
+La organización de las variables distingue entre estados internos de la planta y señales expuestas hacia la capa de control. Esta separación es necesaria para evitar que una variable interna del modelo sea interpretada como una entrada externa cuando únicamente representa información necesaria para la realimentación.
+
+\subsection{Transformaciones de referencia}
+
+El control de la máquina utiliza transformaciones entre el sistema trifásico y el marco rotante $d$--$q$. La cadena de transformación parte de las corrientes trifásicas y utiliza la posición eléctrica del rotor para obtener las componentes de corriente utilizadas por el FOC.
+
+De forma conceptual,
+
+\begin{equation}
+(i_a,i_b,i_c)
+\rightarrow
+(\alpha,\beta)
+\rightarrow
+(d,q).
+\end{equation}
+
+La transformación inversa permite obtener las tensiones trifásicas a partir de las tensiones calculadas en el marco rotante:
+
+\begin{equation}
+(v_d,v_q)
+\rightarrow
+(\alpha,\beta)
+\rightarrow
+(v_a,v_b,v_c).
+\end{equation}
+
+La convención angular utilizada corresponde a \textit{QleadsD\_AphaseToDaxis}. Esta convención se mantiene común entre la planta y el controlador para conservar la coherencia de signos y referencias angulares.
+
+La planta utiliza la posición mecánica $\theta_m$ para determinar la posición eléctrica $\theta_e$. La capa de control recibe esta variable desde la salida de la planta y realiza las transformaciones necesarias para calcular la acción de control.
+
+\subsection{Par electromagnético}
+
+El par electromagnético se representa mediante la relación
+
+\begin{equation}
+T_e=
+\frac{3}{2}p
+\left[
+\lambda_m i_q+
+(L_d-L_q)i_d i_q
+\right].
+\end{equation}
+
+Dado que en la configuración adoptada
+
+\begin{equation}
+L_d=L_q,
+\end{equation}
+
+el término de reluctancia se anula y la expresión queda reducida a
+
+\begin{equation}
+T_e=
+\frac{3}{2}p\lambda_m i_q.
+\end{equation}
+
+Con $p=4$ y $\lambda_m=0.107245~\mathrm{Wb}$, para una corriente $i_q=10~\mathrm{A}$ se obtiene
+
+\begin{equation}
+T_e
+=
+\frac{3}{2}(4)(0.107245)(10)
+=
+6.4347~\mathrm{N\,m}.
+\end{equation}
+
+Esta relación constituye además una referencia de consistencia matemática utilizada posteriormente para interpretar los ensayos de corriente. La coincidencia entre el valor calculado y el valor obtenido durante la simulación demuestra consistencia entre la parametrización, la ecuación implementada y la respuesta computacional del modelo. No constituye por sí misma una validación física del motor real.
+
+\subsection{Modelo mecánico}
+
+La dinámica mecánica se representa mediante
+
+\begin{equation}
+\frac{d\omega_m}{dt}
+=
+\frac{T_e-T_{\mathrm{load}}}{J}.
+\end{equation}
+
+La evolución de la posición mecánica se expresa como
+
+\begin{equation}
+\frac{d\theta_m}{dt}
+=
+\omega_m.
+\end{equation}
+
+En esta formulación, $T_{\mathrm{load}}$ representa el par resistente externo aplicado durante el experimento. Los términos de amortiguamiento viscoso $B$ y de fricción estática $T_{\mathrm{fric}}$ no forman parte de la configuración activa de M4\_BASE.
+
+Esta decisión mantiene explícita la diferencia entre la dinámica propia representada por el modelo y las condiciones de carga impuestas durante los ensayos.
+
+La ecuación mecánica establece además la relación entre el control de corriente y el comportamiento de velocidad. Una modificación de $i_q$ modifica el par electromagnético y, por tanto, la aceleración o desaceleración del rotor dependiendo de la diferencia entre $T_e$ y $T_{\mathrm{load}}$.
+
+\subsection{Estados e integración}
+
+La evolución del estado del modelo se organiza mediante el vector
+
+\begin{equation}
+\mathbf{x}
+=
+[i_d,\;i_q,\;\omega_m,\;\theta_m]^T.
+\end{equation}
+
+Las condiciones iniciales utilizadas en la implementación son
+
+\begin{equation}
+i_d(0)=0,
+\qquad
+i_q(0)=0,
+\qquad
+\omega_m(0)=0,
+\qquad
+\theta_m(0)=0.
+\end{equation}
+
+La implementación actual utiliza integración explícita de Euler. Para un paso de integración $\Delta t$, la actualización de un estado puede expresarse de forma general como
+
+\begin{equation}
+x_{k+1}
+=
+x_k+\Delta t\,f(x_k,u_k).
+\end{equation}
+
+En particular,
+
+\begin{equation}
+i_{d,k+1}
+=
+i_{d,k}
++
+\Delta t
+\left(
+\frac{di_d}{dt}
+\right)_k,
+\end{equation}
+
+\begin{equation}
+i_{q,k+1}
+=
+i_{q,k}
++
+\Delta t
+\left(
+\frac{di_q}{dt}
+\right)_k,
+\end{equation}
+
+\begin{equation}
+\omega_{m,k+1}
+=
+\omega_{m,k}
++
+\Delta t
+\left(
+\frac{d\omega_m}{dt}
+\right)_k,
+\end{equation}
+
+y
+
+\begin{equation}
+\theta_{m,k+1}
+=
+\theta_{m,k}
++
+\Delta t\,\omega_{m,k}.
+\end{equation}
+
+El método de integración es una decisión de implementación adoptada para esta etapa del Digital Twin. Su inclusión explícita permite reproducir la evolución temporal del modelo y mantener identificable la relación entre el paso de integración y los resultados obtenidos.
+
+\subsection{Interfaz PlantInput}
+
+La entrada de la planta se organiza mediante la estructura conceptual \texttt{PlantInput}. En la implementación actual contiene las tensiones trifásicas y el par de carga:
+
+\begin{equation}
+\texttt{PlantInput}
+=
+\{
+v_a,v_b,v_c,T_{\mathrm{load}}
+\}.
+\end{equation}
+
+Estas variables representan las magnitudes externas aplicadas a la planta durante cada paso de integración.
+
+La posición mecánica no constituye un campo de entrada de \texttt{PlantInput}. La posición utilizada para las transformaciones se mantiene como estado interno de la planta y se expone mediante la salida correspondiente.
+
+Esta definición evita duplicar la propiedad de $\theta_m$ entre la entrada y el estado de la planta y mantiene una separación clara entre condiciones externas y variables internas.
+
+\subsection{Interfaz PlantOutput}
+
+La salida de la planta se organiza mediante \texttt{PlantOutput}. Las variables expuestas corresponden a las corrientes trifásicas, las componentes $d$--$q$, la velocidad y posición mecánicas y el par electromagnético:
+
+\begin{equation}
+\texttt{PlantOutput}
+=
+\{
+i_a,i_b,i_c,
+i_d,i_q,
+\omega_m,\theta_m,T_e
+\}.
+\end{equation}
+
+Estas variables constituyen la información disponible para la capa de control y para el registro de los experimentos.
+
+La salida de la planta se organiza como una instantánea coherente posterior a la actualización del estado correspondiente al paso de integración. Esta es una convención temporal de implementación que permite mantener alineadas las variables registradas durante los experimentos.
+
+La convención no representa una propiedad física adicional del motor, sino una decisión sobre cómo se organiza temporalmente la información intercambiada entre la planta, el controlador y el sistema de registro.
+
+\subsection{Implementación computacional}
+
+La implementación de M4\_BASE mantiene separadas la definición de parámetros, la formulación de la planta y las capas de control. Los parámetros de la máquina se suministran desde la configuración de planta y son utilizados por el modelo durante la evaluación de las ecuaciones.
+
+La implementación contiene explícitamente los estados $i_d$, $i_q$, $\omega_m$ y $\theta_m$, así como las operaciones necesarias para obtener las magnitudes eléctricas y mecánicas derivadas.
+
+La separación entre formulación matemática e implementación permite que las decisiones de software puedan identificarse de forma independiente de las propiedades físicas del motor. Esto facilita la trazabilidad y permite modificar posteriormente el método de integración o ampliar la representación de la planta sin alterar necesariamente la definición conceptual de las variables de interfaz.
+
+\subsection{Integración en el Digital Twin}
+
+M4\_BASE constituye la planta común sobre la cual se ejecutan los experimentos de control descritos en este trabajo. La integración con el FOC se realiza mediante el intercambio de las variables establecidas en la interfaz planta--control.
+
+En cada ciclo experimental, el controlador recibe las variables de realimentación proporcionadas por \texttt{PlantOutput}, calcula las tensiones trifásicas y genera un nuevo \texttt{PlantInput}. La planta utiliza dichas tensiones junto con el par de carga correspondiente para actualizar sus estados.
+
+El flujo de ejecución puede resumirse como
+
+\begin{equation}
+\texttt{PlantOutput}
+\rightarrow
+\texttt{FOC}
+\rightarrow
+\texttt{PlantInput}
+\rightarrow
+\texttt{M4\_BASE}.
+\end{equation}
+
+Este ciclo establece la base computacional para los ensayos de corriente y velocidad presentados posteriormente. Al mantener una misma planta durante las diferentes pruebas, los cambios observados entre configuraciones de control pueden asociarse a la estrategia evaluada y no a una redefinición de la máquina.
+
+La arquitectura resultante permite además ampliar progresivamente la fidelidad de la planta cuando un fenómeno físico o una estrategia de control requiera información adicional, manteniendo la trazabilidad de los parámetros, ecuaciones, estados e interfaces utilizados en cada etapa.

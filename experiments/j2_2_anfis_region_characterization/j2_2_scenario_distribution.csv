@@ -1,0 +1,5 @@
+scenario_combination,regions
+friction_base;friction_high;friction_medium;no_friction,9
+friction_base;friction_medium,6
+friction_high;friction_medium,6
+friction_base;no_friction,3

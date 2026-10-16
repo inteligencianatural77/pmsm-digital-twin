@@ -1,0 +1,89 @@
+\section{Conclusiones y continuidad}
+
+\subsection{Conclusiones del desarrollo}
+
+El desarrollo presentado establece una representación digital reproducible del motor PMSM Siemens 1FT7087 a partir de una metodología que separa la caracterización de la planta, su formulación matemática, la implementación del modelo y la evaluación experimental de las estrategias de control.
+
+La planta digital se construyó sobre el modelo PMSM \texttt{M4\_BASE}, utilizando una parametrización cuya procedencia y clasificación se mantienen diferenciadas entre valores establecidos, derivados y parámetros que no forman parte de la configuración activa. Esta separación permite evitar que parámetros propios del controlador sean confundidos con parámetros físicos de la máquina.
+
+El modelo implementado representa la dinámica eléctrica en los ejes $d$ y $q$, la relación entre las variables eléctricas y mecánicas, la generación del par electromagnético y la dinámica mecánica del rotor. La interfaz definida permite separar funcionalmente la planta del sistema de control y proporciona una base común para la evolución posterior del Digital Twin.
+
+Sobre esta planta se implementó un FOC con lazos de corriente en coordenadas $d$--$q$, desacoplamiento eléctrico, transformación de coordenadas, limitación de tensión y lazo externo de velocidad. Esta implementación constituye actualmente la línea base experimental del sistema.
+
+\subsection{Evidencia experimental obtenida}
+
+Los ensayos realizados permitieron comprobar el funcionamiento de la cadena planta--control bajo diferentes condiciones de referencia y carga.
+
+Los ensayos B1 verificaron la operación del control de corriente y su interacción con el modelo PMSM. Los cambios de referencia de $i_q$ permitieron comprobar el seguimiento de corriente y la respuesta del modelo ante diferentes consignas.
+
+Los ensayos B2 extendieron la evaluación al lazo de velocidad. En particular, se verificó la generación de referencias de corriente a partir del error de velocidad y la respuesta ante perturbaciones de par de carga.
+
+Estos resultados proporcionan evidencia de consistencia computacional y funcional de la implementación. La evidencia obtenida permite establecer una línea base reproducible para las etapas posteriores del desarrollo.
+
+Los resultados no deben interpretarse, sin embargo, como una validación física completa del motor real. La validación física requiere comparación sistemática frente a referencias independientes y, cuando sea posible, frente a datos experimentales del motor o del accionamiento real.
+
+\subsection{Alcance de la validación}
+
+La validación desarrollada se organiza en diferentes niveles.
+
+El primer nivel corresponde a la consistencia matemática y computacional de la implementación. En este nivel se verifica que las ecuaciones, transformaciones, estados, parámetros e interfaces produzcan una respuesta coherente con la formulación adoptada.
+
+El segundo nivel corresponde a la evidencia funcional obtenida mediante experimentos reproducibles. En este nivel se evalúa la respuesta del Digital Twin y del FOC ante referencias y perturbaciones definidas.
+
+El tercer nivel corresponde a la validación física frente a referencias independientes. Este nivel requiere establecer correspondencias cuantitativas entre la respuesta del Digital Twin y el comportamiento documentado o medido del motor Siemens 1FT7087.
+
+La distinción entre estos niveles evita presentar una prueba funcional del software como una validación física del motor real.
+
+Una etapa posterior especialmente relevante será la comparación cuantitativa con referencias independientes del comportamiento torque--velocidad del 1FT7087, así como con sus límites de operación y condiciones nominales cuando la información disponible permita establecer dichas correspondencias.
+
+\subsection{Línea base establecida}
+
+El resultado principal de esta etapa es el establecimiento de una línea base reproducible compuesta por:
+
+\begin{enumerate}
+\item una parametrización documentada del PMSM;
+\item el modelo físico \texttt{M4\_BASE};
+\item una interfaz explícita entre planta y control;
+\item un FOC implementado y funcional;
+\item escenarios experimentales reproducibles;
+\item resultados B1 y B2 asociados a condiciones concretas;
+\item criterios definidos para la evaluación de futuras estrategias.
+\end{enumerate}
+
+Esta línea base permite que las modificaciones posteriores puedan evaluarse contra una referencia común. De esta forma, la incorporación de un nuevo controlador no requiere redefinir simultáneamente la planta ni los criterios fundamentales de evaluación.
+
+\subsection{Continuidad hacia control avanzado}
+
+La siguiente etapa de desarrollo corresponde a la evolución del control sobre la misma referencia física.
+
+La ruta establecida considera inicialmente la incorporación de MPC, seguida de una posible capa supervisora ANFIS y, posteriormente, la evaluación de una implementación TinyML cuando la estrategia y los recursos de ejecución lo permitan.
+
+Estas estrategias no forman parte de los resultados implementados en el presente estado del Digital Twin. Su incorporación deberá realizarse de manera incremental y manteniendo las condiciones de comparación establecidas para el FOC.
+
+La evaluación deberá considerar, como mínimo, seguimiento de referencia, respuesta transitoria, rechazo de perturbaciones, esfuerzo de control, cumplimiento de restricciones, robustez, costo computacional y trazabilidad de los resultados.
+
+\subsection{Continuidad hacia mayor fidelidad}
+
+En paralelo con la evolución del control, el modelo físico puede ampliarse cuando exista una justificación basada en evidencia.
+
+La ruta prevista parte de \texttt{M4\_BASE} y puede evolucionar mediante mapas dependientes del punto de operación, modelos no lineales y, posteriormente, información FEM o modelos reducidos cuando estén disponibles los datos necesarios.
+
+Esta evolución no debe realizarse únicamente para aumentar la complejidad del Digital Twin. Cada incorporación deberá responder a una necesidad concreta y conservar la relación entre información de origen, fenómeno representado, formulación matemática y evidencia experimental.
+
+De esta manera, la fidelidad del Digital Twin puede crecer de forma progresiva sin perder la trazabilidad de las decisiones de modelado.
+
+\subsection{Continuidad hacia la tesis}
+
+El presente reporte constituye una base técnica organizada para el desarrollo posterior de la tesis. Su función es consolidar el modelo de planta, la arquitectura, la metodología experimental, la línea base de control y la ruta de evolución.
+
+La transformación posterior del reporte en el documento de tesis deberá realizarse mediante una selección y reorganización del material de acuerdo con los objetivos, hipótesis, metodología y contribuciones definitivas de la investigación.
+
+En consecuencia, el presente documento no pretende anticipar las conclusiones finales de la tesis. Su función en esta etapa es establecer una base técnica verificable sobre la cual puedan desarrollarse y compararse las siguientes fases de investigación.
+
+\subsection{Cierre}
+
+El Digital Twin desarrollado proporciona una representación funcional y reproducible del PMSM Siemens 1FT7087 sobre la cual pueden estudiarse estrategias de control de complejidad creciente.
+
+La principal aportación de esta etapa es haber establecido una separación trazable entre planta, parametrización, modelo, control y evidencia experimental. Esta separación permite continuar el desarrollo sin perder la referencia física ni la procedencia de los resultados.
+
+El sistema queda así preparado para una evolución controlada tanto en fidelidad de planta como en complejidad de control, manteniendo como principio central que cualquier modificación relevante debe poder relacionarse con su fundamento físico, matemático, experimental o metodológico.

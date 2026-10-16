@@ -1,0 +1,60 @@
+\begin{tikzpicture}[
+    >=Latex,
+    node distance=8mm and 9mm,
+    block/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum height=12mm,
+        minimum width=27mm
+    },
+    smallblock/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum height=10mm,
+        minimum width=24mm
+    },
+    signal/.style={->,thick},
+    aux/.style={->,thick,dashed}
+]
+
+\node[block] (transf) {Clarke / Park};
+\node[block, right=of transf] (pi) {PI de corriente\\$d$ / $q$};
+\node[block, right=of pi] (dec) {Desacoplamiento\\eléctrico};
+\node[smallblock, right=of dec] (limit) {Límite de tensión};
+\node[block, right=of limit] (inv) {Park / Clarke\\inversas};
+\node[block, right=of inv] (plant) {M4\_BASE\\PMSM 1FT7087};
+
+\node[smallblock, above=of pi] (ref) {Referencias\\$i_d^*,i_q^*$};
+
+\draw[signal]
+    (transf) -- node[above] {$i_d,i_q$} (pi);
+
+\draw[signal]
+    (pi) -- node[above] {$v_{d,PI},v_{q,PI}$} (dec);
+
+\draw[signal]
+    (dec) -- node[above] {$v_d,v_q$} (limit);
+
+\draw[signal]
+    (limit) -- node[above] {$v_d,v_q$} (inv);
+
+\draw[signal]
+    (inv) -- node[above] {$v_a,v_b,v_c$} (plant);
+
+\draw[signal]
+    (ref) -- (pi);
+
+\draw[aux]
+    (limit.south)
+    |- node[pos=0.25,right] {saturación / anti-windup}
+    (pi.south);
+
+\draw[signal]
+    (plant.south)
+    |- ++(0,-15mm)
+    -| node[pos=0.22,below] {$i_a,i_b,i_c,\theta_m$}
+    (transf.south);
+
+\end{tikzpicture}

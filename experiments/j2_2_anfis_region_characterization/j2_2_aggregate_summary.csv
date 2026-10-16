@@ -1,0 +1,9 @@
+metric,value
+regions,24
+regions_int_w_monotonic,7
+regions_iq_ref_monotonic,9
+regions_omega_m_monotonic,9
+regions_te_monotonic,9
+scenario_pairs,69
+scenario_pairs_int_w_flagged,56
+scenario_pairs_iq_ref_flagged,0

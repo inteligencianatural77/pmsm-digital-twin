@@ -1,0 +1,2 @@
+samples_total,samples_below_physical_current_limit,mean_abs_residual,p95_abs_residual,max_abs_residual
+96000,96000,0.0,0.0,0.0

@@ -25,7 +25,23 @@ def run_open_loop_test(duration_s: float = 0.05, dt: float = 50e-6) -> list:
         va = 5.0 * math.sin(2 * math.pi * 50.0 * t)
         vb = 5.0 * math.sin(2 * math.pi * 50.0 * t - 2 * math.pi / 3)
         vc = 5.0 * math.sin(2 * math.pi * 50.0 * t + 2 * math.pi / 3)
-        out = plant.step(PlantInput(va=va, vb=vb, vc=vc, t_load=0.0,
-                                    theta_m=plant.states["theta_m"]), dt)
+        out = plant.step(
+            PlantInput(va=va, vb=vb, vc=vc, t_load=0.0),
+            dt,
+        )
         trajectory.append(out)
     return trajectory
+
+
+if __name__ == "__main__":
+    trajectory = run_open_loop_test()
+    final = trajectory[-1]
+
+    print("===== PRUEBA DE CONSISTENCIA PMSM =====")
+    print(f"Muestras: {len(trajectory)}")
+    print(f"Duración: {len(trajectory) * 50e-6:.6f} s")
+    print(f"id final: {final.id:.6f} A")
+    print(f"iq final: {final.iq:.6f} A")
+    print(f"omega_m final: {final.omega_m:.6f} rad/s")
+    print(f"theta_m final: {final.theta_m:.6f} rad")
+    print(f"Te final: {final.te:.6f} N·m")

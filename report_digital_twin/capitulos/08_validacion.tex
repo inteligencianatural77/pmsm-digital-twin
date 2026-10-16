@@ -1,0 +1,331 @@
+\section{Validación}
+
+La validación del Digital Twin se plantea como un proceso independiente de los ensayos funcionales descritos en el Capítulo 7. La ejecución correcta del modelo y del controlador demuestra consistencia computacional y funcionamiento de la implementación, pero no constituye por sí misma evidencia de que la representación reproduce cuantitativamente el comportamiento del motor Siemens 1FT7087 real.
+
+Por esta razón, la validación se organiza mediante una correspondencia explícita entre el fenómeno físico de interés, la referencia independiente utilizada, la representación disponible en el Digital Twin, las condiciones bajo las cuales se realiza la comparación, la métrica empleada y la evidencia obtenida.
+
+\subsection{Objetivo de la validación}
+
+El objetivo de esta etapa es determinar hasta qué punto el Digital Twin representa de forma coherente los fenómenos físicos relevantes del motor Siemens 1FT7087 y establecer, de manera trazable, qué aspectos han sido verificados y cuáles permanecen pendientes de validación.
+
+La validación no se limita a comprobar que las ecuaciones del modelo producen resultados numéricamente consistentes. Se requiere relacionar las magnitudes calculadas por el Digital Twin con referencias independientes procedentes de la documentación técnica del motor, datos nominales, relaciones electromecánicas publicadas u otras evidencias experimentales disponibles.
+
+De esta manera, la validación permite distinguir tres niveles de evidencia:
+
+\begin{enumerate}
+
+\item \textbf{Consistencia computacional:} comprobación de que las ecuaciones, parámetros, transformaciones y relaciones internas del modelo son coherentes entre sí.
+
+\item \textbf{Evidencia funcional:} comprobación mediante ensayos reproducibles de que la planta y las estrategias de control implementadas responden de acuerdo con las condiciones y referencias establecidas.
+
+\item \textbf{Validación física:} comparación cuantitativa del comportamiento del Digital Twin con referencias independientes asociadas al motor Siemens 1FT7087 real.
+
+\end{enumerate}
+
+Esta clasificación evita utilizar la ejecución de una simulación como sustituto de una validación física independiente.
+
+\subsection{Estrategia de validación}
+
+La estrategia adoptada se resume mediante la siguiente cadena:
+
+\begin{equation}
+\text{Fenómeno}
+\rightarrow
+\text{Referencia}
+\rightarrow
+\text{Digital Twin}
+\rightarrow
+\text{Condición}
+\rightarrow
+\text{Métrica}
+\rightarrow
+\text{Evidencia}
+\end{equation}
+
+El \textbf{fenómeno} identifica la magnitud física que se desea verificar. La \textbf{referencia} corresponde a una fuente independiente respecto de la ejecución particular del modelo. El \textbf{Digital Twin} proporciona la magnitud calculada bajo las condiciones definidas. La \textbf{condición} establece el punto o escenario de comparación. La \textbf{métrica} permite cuantificar la diferencia entre ambas representaciones. Finalmente, la \textbf{evidencia} conserva el resultado y su procedencia.
+
+Esta estructura permite evitar comparaciones aisladas o cualitativas en las que no quede definido qué magnitud se está verificando ni respecto de qué referencia.
+
+\subsection{Referencias independientes}
+
+Las referencias utilizadas para la validación deben conservar una separación clara respecto de los valores generados por el propio modelo.
+
+Entre las referencias disponibles para el motor Siemens 1FT7087 se consideran principalmente:
+
+\begin{itemize}
+
+\item datos nominales eléctricos y mecánicos del motor;
+
+\item relaciones publicadas de par por corriente;
+
+\item relaciones de tensión por velocidad;
+
+\item velocidad nominal y condiciones nominales de operación;
+
+\item información disponible sobre la curva característica de par--velocidad;
+
+\item límites de operación y condiciones de sobrecarga cuando se encuentren documentados;
+
+\item información térmica disponible en la documentación técnica;
+
+\item cualquier dato experimental independiente que pueda incorporarse posteriormente con condiciones de ensayo conocidas.
+
+\end{itemize}
+
+La autoridad de cada referencia debe conservarse de acuerdo con su procedencia. Un parámetro derivado a partir de dos magnitudes independientes puede utilizarse como parámetro calculado del modelo, pero no debe presentarse como un valor directamente publicado por el fabricante.
+
+\subsection{Validación de la relación par--corriente}
+
+Una de las primeras relaciones físicas que puede verificarse es la correspondencia entre la corriente en el eje \(q\) y el par electromagnético producido por el modelo.
+
+Para el modelo utilizado, la expresión general del par es:
+
+\begin{equation}
+T_e=
+\frac{3}{2}
+p
+\left[
+\lambda_m i_q+
+(L_d-L_q)i_d i_q
+\right].
+\end{equation}
+
+Dado que la parametrización actual utiliza:
+
+\begin{equation}
+L_d=L_q,
+\end{equation}
+
+el término de par de reluctancia desaparece y, para \(i_d=0\), la expresión queda:
+
+\begin{equation}
+T_e=
+\frac{3}{2}
+p\lambda_m i_q.
+\end{equation}
+
+La relación permite comprobar internamente la correspondencia entre la corriente utilizada por el FOC y el par calculado por \texttt{M4\_BASE}. Esta comprobación ya fue realizada en el ensayo B1.4 y produjo:
+
+\begin{equation}
+T_e=6.434700\,\mathrm{N\,m}
+\end{equation}
+
+para \(p=4\), \(\lambda_m=0.107245\,\mathrm{Wb}\) e \(i_q=10\,\mathrm{A}\).
+
+Este resultado constituye evidencia de consistencia computacional del modelo. Para convertir esta comprobación en una validación física se requiere contrastar la relación obtenida con una referencia independiente del motor real bajo condiciones equivalentes.
+
+\subsection{Validación del parámetro de flujo magnético}
+
+El parámetro \(\lambda_m=0.107245\,\mathrm{Wb}\) utilizado por \texttt{M4\_BASE} corresponde a un valor derivado a partir de información independiente de par y tensión del motor.
+
+La relación utilizada para su obtención considera el coeficiente de par especificado en corriente RMS y la relación entre corriente RMS y corriente de pico. Para \(p=4\), el valor obtenido es:
+
+\begin{equation}
+\lambda_m=
+\frac{\sqrt{2}K_t}{3p}
+=
+0.107245\,\mathrm{Wb}.
+\end{equation}
+
+La estimación puede contrastarse adicionalmente con la constante de tensión disponible en la documentación del motor. Este segundo cálculo proporciona una comprobación cruzada de la parametrización, pero no convierte el parámetro derivado en un dato directamente publicado por el fabricante.
+
+La diferencia entre las relaciones de par y tensión debe interpretarse dentro de las condiciones de especificación correspondientes a cada magnitud, incluyendo las convenciones RMS, línea--línea, fase y las condiciones térmicas indicadas en la documentación.
+
+Por tanto, la validación del flujo magnético se considera una combinación de derivación documentada y comprobación cruzada, cuya trazabilidad debe conservarse junto con las fuentes utilizadas.
+
+\subsection{Validación de la relación tensión--velocidad}
+
+La relación entre velocidad eléctrica, velocidad mecánica y tensión constituye otro punto de comprobación relevante.
+
+El modelo utiliza:
+
+\begin{equation}
+\omega_e=p\omega_m
+\end{equation}
+
+y
+
+\begin{equation}
+\theta_e=p\theta_m.
+\end{equation}
+
+La comparación con la constante de tensión disponible para el motor permite comprobar si el orden de magnitud de la tensión generada por el modelo resulta compatible con la información independiente del fabricante.
+
+Esta comparación debe realizarse respetando las mismas convenciones de medición utilizadas por la referencia. En particular, debe distinguirse entre tensión de fase y tensión línea--línea, así como entre valores RMS y valores de pico.
+
+La finalidad de esta comprobación no es forzar la coincidencia de dos magnitudes obtenidas bajo condiciones diferentes, sino identificar diferencias atribuibles a las convenciones, condiciones de operación o simplificaciones del modelo.
+
+\subsection{Validación de la velocidad nominal}
+
+La velocidad nominal constituye una referencia mecánica independiente para evaluar la escala temporal y de velocidad del Digital Twin.
+
+El modelo distingue explícitamente entre velocidad mecánica y velocidad eléctrica:
+
+\begin{equation}
+\omega_e=p\omega_m.
+\end{equation}
+
+Esta distinción es necesaria para evitar interpretar la velocidad eléctrica como velocidad mecánica del rotor.
+
+La comparación con la velocidad nominal documentada del motor debe realizarse bajo una condición de operación equivalente. Los resultados de B1.4, B1.5 y B1.6 no se utilizan directamente para declarar validada la velocidad nominal, debido a que dichos ensayos corresponden a referencias de corriente y condiciones de carga definidas para evaluar el funcionamiento del control.
+
+La validación de la condición nominal requiere un ensayo específico que reproduzca las variables relevantes de la condición de referencia.
+
+\subsection{Validación de la curva par--velocidad}
+
+La curva característica de par--velocidad constituye una referencia de mayor nivel para la validación del Digital Twin.
+
+La comparación debe considerar al menos:
+
+\begin{itemize}
+
+\item región de operación nominal;
+
+\item región de sobrecarga cuando se encuentre documentada;
+
+\item límite asociado a la tensión disponible;
+
+\item comportamiento de la velocidad ante variaciones del par;
+
+\item condiciones de debilitamiento de campo cuando corresponda;
+
+\item límites térmicos asociados a las condiciones de operación.
+
+\end{itemize}
+
+La curva del fabricante debe tratarse como referencia independiente y conservar su procedencia documental. El Digital Twin debe evaluarse bajo condiciones reproducibles equivalentes y la diferencia debe expresarse mediante métricas cuantitativas.
+
+Esta comparación constituye una de las validaciones físicas principales previstas para el Digital Twin, ya que permite evaluar conjuntamente la interacción entre los parámetros eléctricos, el par electromagnético, la dinámica mecánica y las restricciones de operación.
+
+Mientras esta comparación no se haya realizado bajo condiciones equivalentes y con una referencia documental identificada, no debe afirmarse que la curva par--velocidad del Digital Twin ha sido validada físicamente.
+
+\subsection{Validación térmica}
+
+La información térmica constituye una dimensión adicional de validación que no queda cubierta por los ensayos eléctricos y mecánicos realizados hasta este punto.
+
+El modelo actual conserva parámetros térmicos asociados al motor, pero la representación electromecánica \texttt{M4\_BASE} no incorpora todavía un modelo térmico completo acoplado a la dinámica eléctrica y mecánica.
+
+Por esta razón, los parámetros térmicos disponibles se consideran información de parametrización y referencia para una evolución posterior del Digital Twin, pero no se presentan como evidencia de una validación térmica completa.
+
+Una validación térmica requerirá establecer una relación entre pérdidas, temperatura, condiciones de carga, tiempo de operación y límites térmicos documentados del motor.
+
+\subsection{Fenómenos todavía no validados}
+
+El nivel actual del Digital Twin no permite afirmar la validación independiente de todos los fenómenos físicos del motor.
+
+Entre los aspectos que requieren evidencia adicional se encuentran:
+
+\begin{itemize}
+
+\item saturación magnética;
+
+\item variación no lineal de \(L_d\) y \(L_q\);
+
+\item mapas de flujo y parámetros dependientes del punto de operación;
+
+\item pérdidas eléctricas y magnéticas detalladas;
+
+\item comportamiento térmico dinámico;
+
+\item características completas de fricción y pérdidas mecánicas;
+
+\item región completa de debilitamiento de campo;
+
+\item curva completa de par--velocidad bajo condiciones equivalentes a las de referencia;
+
+\item efectos que requieran información FEM o ROM para ser representados con mayor fidelidad.
+
+\end{itemize}
+
+Estos aspectos no se consideran errores del modelo actual. Corresponden a fenómenos que se encuentran fuera del nivel de fidelidad adoptado para \texttt{M4\_BASE} y que podrán incorporarse cuando exista una necesidad de ingeniería y una fuente de información suficiente para justificarlos.
+
+\subsection{Matriz de validación}
+
+La estrategia de validación se resume en la siguiente matriz conceptual:
+
+\begin{table}[H]
+\centering
+\caption{Matriz conceptual de validación del Digital Twin.}
+\label{tab:matriz_validacion}
+\begin{tabular}{p{0.19\textwidth}p{0.23\textwidth}p{0.22\textwidth}p{0.25\textwidth}}
+\toprule
+\textbf{Fenómeno} &
+\textbf{Referencia} &
+\textbf{Representación} &
+\textbf{Estado de evidencia} \\
+\midrule
+
+Par--corriente &
+Relación de par documentada &
+\texttt{M4\_BASE} &
+Consistencia computacional; validación física mediante comparación independiente pendiente. \\
+
+Flujo magnético &
+Par y constante de tensión &
+Parámetro derivado \(\lambda_m\) &
+Derivación documentada y comprobación cruzada. \\
+
+Tensión--velocidad &
+Constante de tensión del motor &
+Modelo eléctrico &
+Comprobación de consistencia y comparación física pendiente bajo condiciones equivalentes. \\
+
+Velocidad nominal &
+Datos nominales del motor &
+Dinámica mecánica &
+Referencia disponible; ensayo específico de validación pendiente. \\
+
+Par--velocidad &
+Curva característica del motor &
+Digital Twin &
+Comparación física cuantitativa pendiente. \\
+
+Respuesta ante carga &
+Ensayos B1.6 y B2.x &
+Planta + FOC &
+Evidencia funcional reproducible; no constituye validación física independiente. \\
+
+Comportamiento térmico &
+Datos térmicos del motor &
+Parámetros térmicos &
+Parametrización disponible; validación térmica dinámica pendiente. \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+La matriz permite conservar una separación explícita entre los elementos que ya cuentan con evidencia y aquellos que requieren una etapa posterior de comparación. De esta forma, el estado de validación del Digital Twin permanece trazable y no depende únicamente de la ejecución exitosa de los ensayos.
+
+\subsection{Criterios para la aceptación de una validación}
+
+Una comparación podrá considerarse evidencia de validación física cuando se cumplan, como mínimo, las siguientes condiciones:
+
+\begin{enumerate}
+
+\item la referencia utilizada sea independiente de la ejecución particular del Digital Twin;
+
+\item las condiciones de comparación estén identificadas y sean compatibles;
+
+\item las convenciones y unidades de las magnitudes comparadas sean equivalentes o estén explícitamente convertidas;
+
+\item el resultado del Digital Twin pueda reproducirse a partir de los parámetros y condiciones registrados;
+
+\item la diferencia entre el modelo y la referencia pueda cuantificarse mediante una métrica definida;
+
+\item las discrepancias observadas puedan relacionarse con las hipótesis, simplificaciones o condiciones del modelo.
+
+\end{enumerate}
+
+El cumplimiento de estos criterios permite distinguir una comparación física reproducible de una coincidencia visual o de una comprobación puramente interna.
+
+\subsection{Estado actual de la validación}
+
+Con la evidencia disponible al cierre de este reporte, \texttt{M4\_BASE} presenta una base consistente para continuar el proceso de validación del Digital Twin.
+
+Los ensayos B1.4--B1.6 y B2.2--B2.5 proporcionan evidencia computacional y funcional reproducible de la interacción entre el modelo PMSM y el FOC. La parametrización del flujo magnético dispone además de una derivación documentada y una comprobación cruzada mediante información independiente.
+
+Sin embargo, estos resultados no son suficientes para declarar validado físicamente el Digital Twin completo del Siemens 1FT7087.
+
+La validación física debe continuar mediante comparaciones cuantitativas con referencias independientes del motor real, comenzando por las relaciones electromecánicas y la curva par--velocidad, y extendiéndose posteriormente a los fenómenos térmicos y no lineales que requieran una representación de mayor fidelidad.
+
+De esta forma, el Digital Twin queda definido no solamente por el modelo implementado, sino también por el conjunto de evidencias que permiten establecer qué fenómenos han sido verificados, bajo qué condiciones y con qué nivel de confianza.

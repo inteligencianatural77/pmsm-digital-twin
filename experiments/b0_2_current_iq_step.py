@@ -128,7 +128,6 @@ def main() -> None:
                 vb=vb,
                 vc=vc,
                 t_load=0.0,
-                theta_m=theta_m,
             ),
             DT,
         )

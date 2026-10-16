@@ -1,0 +1,215 @@
+\section{Metodología experimental y reproducibilidad}
+
+\subsection{Propósito de la metodología experimental}
+
+La metodología experimental establece el procedimiento utilizado para evaluar de manera reproducible el comportamiento del Digital Twin del motor Siemens 1FT7087 y de las estrategias de control implementadas sobre él. Su función es separar claramente la definición del modelo, la configuración del controlador, las condiciones de operación, la ejecución del ensayo, la adquisición de resultados y su posterior interpretación.
+
+El principio central de esta metodología es que cada resultado debe poder relacionarse con una configuración identificable de planta, parámetros, controlador, referencias, perturbaciones, condiciones temporales y criterios de evaluación. De esta manera, los resultados obtenidos no se consideran valores aislados, sino evidencia asociada a un experimento definido.
+
+La metodología se aplica inicialmente al modelo \texttt{M4\_BASE} y al FOC. Las estrategias de control avanzado descritas posteriormente se evaluarán bajo la misma estructura metodológica cuando sean implementadas.
+
+\subsection{Cadena reproducible de experimentación}
+
+El procedimiento experimental se organiza mediante una cadena de trabajo en la que cada etapa conserva la información necesaria para identificar la siguiente:
+
+\begin{equation}
+\text{Parámetros}
+\rightarrow
+\text{Planta}
+\rightarrow
+\text{Control}
+\rightarrow
+\text{Escenario}
+\rightarrow
+\text{Ejecución}
+\rightarrow
+\text{Datos}
+\rightarrow
+\text{Métricas}
+\rightarrow
+\text{Interpretación}
+\end{equation}
+
+Los parámetros de la planta proceden de la caracterización documentada en el Capítulo 2. La planta utilizada corresponde a \texttt{M4\_BASE}, mientras que el controlador se selecciona de acuerdo con el ensayo definido. Posteriormente se establecen las referencias y perturbaciones correspondientes, se ejecuta la simulación temporal y se almacenan las variables relevantes.
+
+Finalmente, los datos obtenidos se procesan mediante métricas definidas de acuerdo con el objetivo del ensayo. La interpretación se realiza considerando las condiciones bajo las cuales fueron obtenidos los resultados, evitando extrapolar conclusiones más allá de la evidencia disponible.
+
+\subsection{Configuración de la planta}
+
+Todos los ensayos principales utilizan la misma definición de planta establecida en el modelo \texttt{M4\_BASE}, salvo que un experimento indique explícitamente una modificación.
+
+La configuración base mantiene los parámetros eléctricos, mecánicos y electromagnéticos establecidos para el motor Siemens 1FT7087. En particular, se conservan \(R_s\), \(L_d\), \(L_q\), \(\lambda_m\), \(J\) y el número de pares de polos definido para el modelo.
+
+La utilización de una configuración común permite que los cambios observados entre experimentos puedan asociarse principalmente a las referencias, perturbaciones o estrategias de control modificadas, en lugar de introducir simultáneamente cambios no controlados en la planta.
+
+El par de carga \(T_{load}\) se considera una entrada externa al modelo de planta. Cuando no se especifica una perturbación, el ensayo se ejecuta con \(T_{load}=0\). Cuando se estudia la respuesta ante carga, los cambios de \(T_{load}\) se definen explícitamente en el escenario experimental.
+
+\subsection{Configuración temporal}
+
+Los ensayos principales se realizan utilizando un paso temporal de
+
+\begin{equation}
+\Delta t = 50~\mu\mathrm{s}.
+\end{equation}
+
+Esta base temporal se mantiene común entre la planta y el controlador para los experimentos de referencia. La integración temporal del modelo de planta utiliza el esquema explícito definido en \texttt{M4\_BASE}.
+
+La conservación de un paso temporal común facilita la comparación entre ensayos y permite interpretar los resultados dentro de una misma discretización. Cuando se utilicen otras bases temporales en experimentos posteriores, estas deberán registrarse explícitamente y considerarse como parte de las condiciones experimentales.
+
+\subsection{Definición de los escenarios}
+
+Cada ensayo se define mediante un conjunto mínimo de condiciones:
+
+\begin{itemize}
+\item identificación del experimento;
+\item duración de la simulación;
+\item paso temporal;
+\item referencias de corriente \(i_d^*\) e \(i_q^*\);
+\item referencia de velocidad cuando existe lazo de velocidad;
+\item par de carga aplicado;
+\item parámetros del controlador;
+\item límites utilizados por el controlador;
+\item variables registradas;
+\item métricas de evaluación.
+\end{itemize}
+
+Esta definición permite distinguir entre un cambio de escenario y un cambio de modelo. Por ejemplo, modificar \(i_q^*\) o \(T_{load}\) constituye una condición experimental diferente, mientras que modificar \(L_d\), \(L_q\), \(\lambda_m\) o \(J\) constituye un cambio en la parametrización de la planta que debe quedar identificado como tal.
+
+\subsection{Secuencia de ensayos}
+
+La evaluación experimental sigue una secuencia progresiva. Primero se comprueba el comportamiento básico de corriente y posteriormente se incrementa el nivel de integración hasta incorporar la planta completa y el lazo de velocidad.
+
+La secuencia considerada es:
+
+\begin{enumerate}
+\item \textbf{B0.1:} respuesta a un escalón de referencia de corriente \(i_q\);
+\item \textbf{B1.1:} implementación del controlador PI de corriente;
+\item \textbf{B1.2:} incorporación del desacoplamiento eléctrico;
+\item \textbf{B1.3:} integración del FOC de corriente;
+\item \textbf{B1.4:} integración del FOC con \texttt{M4\_BASE};
+\item \textbf{B1.5:} seguimiento de cambios de referencia \(i_q^*\);
+\item \textbf{B1.6:} respuesta ante cambios del par de carga;
+\item \textbf{B2.2:} regulación de velocidad sin carga;
+\item \textbf{B2.3:} regulación de velocidad con carga;
+\item \textbf{B2.4:} análisis temporal del comportamiento ante perturbaciones;
+\item \textbf{B2.5:} exploración de variaciones de parámetros del controlador.
+\end{enumerate}
+
+Esta secuencia conserva la progresión del desarrollo del sistema. Los primeros ensayos permiten comprobar componentes individuales del control, mientras que los posteriores evalúan la interacción entre planta, control de corriente y control de velocidad.
+
+Los ensayos B1.4 en adelante constituyen el núcleo de la evidencia experimental integrada utilizada para caracterizar el comportamiento del Digital Twin y de su FOC.
+
+\subsection{Variables registradas}
+
+La adquisición de datos se realiza conservando las variables necesarias para reconstruir el comportamiento eléctrico, mecánico y de control del sistema.
+
+Entre las variables principales se encuentran:
+
+\begin{itemize}
+\item tiempo \(t\);
+\item corrientes trifásicas \(i_a,i_b,i_c\);
+\item corrientes \(i_d,i_q\);
+\item referencias \(i_d^*,i_q^*\);
+\item velocidad mecánica \(\omega_m\);
+\item referencia de velocidad \(\omega_m^*\), cuando corresponde;
+\item posición mecánica \(\theta_m\);
+\item par electromagnético \(T_e\);
+\item par de carga \(T_{load}\);
+\item tensiones generadas \(v_a,v_b,v_c\);
+\item señales internas relevantes del controlador.
+\end{itemize}
+
+La selección de variables responde al objetivo de conservar simultáneamente evidencia sobre la respuesta de la planta y sobre la acción del controlador. Esto permite distinguir, por ejemplo, un error de seguimiento de corriente de una limitación originada en la referencia o en la tensión disponible.
+
+\subsection{Almacenamiento y trazabilidad de resultados}
+
+Los resultados de los ensayos se almacenan en archivos de datos asociados al identificador del experimento. Cuando corresponde, los resultados se exportan en formato CSV para facilitar su procesamiento posterior y la generación reproducible de gráficas.
+
+La identificación del resultado debe conservar, como mínimo, la relación con:
+
+\begin{equation}
+\text{Ensayo}
+\leftrightarrow
+\text{Configuración}
+\leftrightarrow
+\text{Datos}
+\leftrightarrow
+\text{Métricas}
+\leftrightarrow
+\text{Figura}
+\end{equation}
+
+Esta relación será utilizada posteriormente para generar las gráficas del Capítulo 7. Las figuras finales deberán proceder de los datos registrados mediante procedimientos reproducibles, evitando introducir manualmente valores que no puedan relacionarse con el ensayo correspondiente.
+
+\subsection{Métricas de evaluación}
+
+Las métricas utilizadas dependen del objetivo de cada ensayo. Para los ensayos de corriente pueden considerarse el valor final, error respecto a la referencia, sobreimpulso y tiempo de respuesta.
+
+Para los ensayos de velocidad se considera principalmente el error de seguimiento:
+
+\begin{equation}
+e_{\omega}(t)
+=
+\omega_m^*(t)-\omega_m(t).
+\end{equation}
+
+El error absoluto final puede expresarse como:
+
+\begin{equation}
+|e_{\omega,f}|
+=
+\left|
+\omega_m^*-\omega_{m,f}
+\right|.
+\end{equation}
+
+Cuando resulta apropiado, el error porcentual se calcula mediante:
+
+\begin{equation}
+e_{\omega,\%}
+=
+\frac{
+|\omega_m^*-\omega_{m,f}|
+}{
+|\omega_m^*|
+}
+100.
+\end{equation}
+
+Para los ensayos sometidos a cambios de carga también se analiza la evolución temporal de \(\omega_m\), \(i_q\), \(i_q^*\) y \(T_e\), con el propósito de relacionar la perturbación aplicada con la respuesta electromecánica y con la acción del controlador.
+
+\subsection{Criterios para la interpretación}
+
+La interpretación de los resultados se realiza separando tres niveles de evidencia.
+
+El primer nivel corresponde a la \textbf{consistencia computacional}, mediante la comprobación de relaciones matemáticas, dimensiones, señales y estados esperados del modelo.
+
+El segundo nivel corresponde a la \textbf{evidencia funcional}, obtenida mediante experimentos reproducibles que permiten comprobar que la implementación de la planta y del controlador responde de acuerdo con las funciones para las cuales fueron definidos.
+
+El tercer nivel corresponde a la \textbf{validación física}, que requiere la comparación con referencias independientes del modelo, tales como datos documentales del motor, curvas características o resultados experimentales externos. La existencia de un resultado numérico coherente no se considera por sí misma evidencia de validación física.
+
+Esta separación evita confundir el funcionamiento correcto de la implementación con la representación exacta del comportamiento del motor real.
+
+\subsection{Reproducibilidad}
+
+La reproducibilidad se establece mediante la conservación conjunta del código de la planta y los controladores, los parámetros utilizados, la configuración temporal, los escenarios experimentales, los datos generados y los procedimientos de análisis.
+
+Bajo esta estructura, un resultado puede ser reconstruido ejecutando nuevamente el mismo experimento con la misma configuración. Si alguna condición cambia, el cambio debe identificarse como parte del nuevo ensayo y no como una modificación implícita del resultado anterior.
+
+La reproducibilidad constituye además la base para la comparación futura entre el FOC y las estrategias de control avanzado. MPC, ANFIS y TinyML deberán utilizar, en la medida en que el experimento lo permita, la misma planta, condiciones de operación y criterios de evaluación para que las diferencias observadas puedan atribuirse a la estrategia de control evaluada.
+
+\subsection{Criterio de conservación de evidencia}
+
+Los resultados experimentales se conservan como evidencia del estado de desarrollo correspondiente al ensayo realizado. Un resultado no se modifica posteriormente para ajustarlo a una expectativa determinada; cualquier corrección de modelo, parámetro o procedimiento debe generar una nueva configuración identificable.
+
+De esta forma, la metodología mantiene una separación entre:
+
+\begin{itemize}
+\item resultados obtenidos bajo una configuración determinada;
+\item modificaciones posteriores de la implementación;
+\item nuevas ejecuciones realizadas después de dichas modificaciones;
+\item conclusiones derivadas de la comparación entre configuraciones.
+\end{itemize}
+
+Este criterio permite mantener la trazabilidad del desarrollo y proporciona una base consistente para las etapas posteriores de validación y comparación de estrategias de control.
+

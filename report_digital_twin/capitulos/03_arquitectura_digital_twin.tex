@@ -1,0 +1,111 @@
+\section{Arquitectura del Digital Twin}
+
+\subsection{Concepto y función}
+
+El Digital Twin desarrollado en este trabajo constituye una representación computacional específica del motor PMSM Siemens 1FT7087 y de las relaciones necesarias para su interacción con las estrategias de control. Su función principal es proporcionar una plataforma reproducible sobre la cual puedan desarrollarse, ejecutar­se y evaluarse diferentes estrategias de control manteniendo una misma referencia de planta.
+
+La arquitectura se establece separando la representación de la planta de las capas de control. Esta separación permite modificar la estrategia de control sin redefinir la máquina eléctrica y, de forma inversa, permite evolucionar la representación de la planta sin alterar innecesariamente la estructura de evaluación de los controladores.
+
+La función del Digital Twin no se limita a reproducir determinados valores nominales del motor. Su utilidad se encuentra en mantener una relación coherente entre parámetros, estados, entradas, salidas, condiciones de operación y resultados experimentales. De esta manera, la representación computacional puede utilizarse como base común para el desarrollo progresivo de estrategias de control.
+
+\subsection{Arquitectura general}
+
+La arquitectura funcional se organiza alrededor de una planta PMSM y de una cadena de control que puede evolucionar progresivamente desde un FOC hacia estrategias de mayor complejidad.
+
+La estructura conceptual general se expresa como
+
+\begin{equation}
+\text{Planta/Digital Twin}
+\rightarrow
+\text{FOC}
+\rightarrow
+\text{MPC}
+\rightarrow
+\text{ANFIS}
+\rightarrow
+\text{TinyML}.
+\end{equation}
+
+Esta expresión representa una ruta de evolución de la arquitectura y no implica que todas las capas se encuentren implementadas o validadas simultáneamente. En la etapa actual, el FOC constituye la estrategia de referencia utilizada para establecer la base experimental sobre la cual podrán evaluarse posteriormente estrategias avanzadas.
+
+La planta mantiene una interfaz definida con la capa de control. El controlador recibe las variables necesarias para calcular las acciones de control y devuelve las tensiones trifásicas que serán aplicadas al modelo PMSM. Las referencias y condiciones externas, como el par de carga, se mantienen diferenciadas de los estados internos de la planta.
+
+\subsection{Planta PMSM}
+
+La planta PMSM corresponde a la implementación computacional del modelo M4\_BASE descrito en la Sección~4. Este modelo representa la dinámica eléctrica y mecánica de la máquina mediante sus estados internos y los parámetros establecidos durante la caracterización.
+
+La planta recibe como entradas las tensiones trifásicas y el par de carga:
+
+\begin{equation}
+\mathbf{u}_{p}
+=
+[v_a,\;v_b,\;v_c,\;T_{\mathrm{load}}].
+\end{equation}
+
+A partir de estas entradas y de sus estados internos, la planta calcula las corrientes trifásicas, las componentes $d$--$q$, la velocidad y posición mecánicas y el par electromagnético.
+
+La planta constituye una entidad independiente del controlador. En consecuencia, los parámetros propios del motor permanecen en la capa de planta y no son redefinidos cada vez que se modifica la estrategia de control.
+
+Esta separación permite utilizar una misma representación del motor para diferentes experimentos y facilita la comparación entre estrategias bajo condiciones equivalentes.
+
+\subsection{Interfaz planta--control}
+
+La interfaz funcional entre la planta y el FOC se establece mediante un conjunto explícito de señales. La planta proporciona al controlador las variables necesarias para la realimentación eléctrica y mecánica:
+
+\begin{equation}
+\{i_a,i_b,i_c,\theta_m,\omega_m\}.
+\end{equation}
+
+El controlador genera las tres tensiones que serán aplicadas a la planta:
+
+\begin{equation}
+\{v_a,v_b,v_c\}.
+\end{equation}
+
+El par de carga $T_{\mathrm{load}}$ pertenece a la condición de operación de la planta y no constituye una señal generada por el FOC.
+
+La interfaz funcional C-01 se utiliza como frontera conceptual entre ambas entidades. Su objetivo es establecer qué variables cruzan la frontera planta--control y mantener separadas la propiedad de las variables internas de la planta y la autoridad del controlador sobre las acciones de control.
+
+La interfaz no debe interpretarse como una correspondencia literal entre todos los campos de las estructuras de implementación y las ocho señales conceptuales de C-01. El contrato define la frontera funcional, mientras que la implementación organiza estas variables de acuerdo con las necesidades del software.
+
+\subsection{Arquitectura de control}
+
+La arquitectura de control se organiza en capas con responsabilidades diferenciadas. El FOC constituye la estrategia de referencia para el control de las corrientes del PMSM y establece la base experimental para la evaluación posterior de estrategias avanzadas.
+
+Dentro del FOC se distinguen el control de corriente, la generación de referencias, el desacoplamiento de las dinámicas eléctricas y las transformaciones entre los marcos de referencia trifásico y rotante.
+
+La estructura de control mantiene separadas las variables de la planta y los parámetros propios de los controladores. Las ganancias de los controladores PI, los límites de las referencias y los parámetros de configuración del desacoplamiento pertenecen a la capa de control y no modifican la definición física de la planta.
+
+La arquitectura permite incorporar posteriormente otras estrategias manteniendo la misma planta de referencia. En particular, MPC, ANFIS y TinyML se consideran capas de evolución de control que podrán evaluarse sobre la misma infraestructura experimental.
+
+\subsection{Contratos C1--C7}
+
+Las fronteras funcionales del sistema se documentan mediante el esquema contractual C1--C7. Estos contratos establecen responsabilidades, señales y límites conceptuales entre los diferentes componentes de la arquitectura.
+
+La cadena funcional se representa como
+
+\begin{equation}
+\text{PLANTA/DIGITAL TWIN}
+\xrightarrow{\mathrm{C\text{-}01}}
+\text{FOC}
+\xrightarrow{\mathrm{C\text{-}02}}
+\text{MPC}
+\xrightarrow{\mathrm{C\text{-}03}}
+\text{ANFIS}
+\xrightarrow{\mathrm{C\text{-}04}}
+\text{TinyML}.
+\end{equation}
+
+En esta estructura, C-01 corresponde a la frontera activa entre la planta y el FOC. Las fronteras posteriores constituyen la base documental para la evolución de la arquitectura de control.
+
+Los contratos no constituyen código ejecutable ni definen una implementación particular. Su función es establecer límites funcionales que permitan mantener la trazabilidad cuando la arquitectura evolucione.
+
+La especificación contractual se mantiene además independiente de la organización física del repositorio. Esto permite que una modificación de archivos, módulos o estructuras de software no altere por sí misma la definición conceptual de las fronteras del sistema.
+
+\subsection{Propiedad, autoridad y flujo}
+
+La arquitectura establece una separación explícita entre propiedad de variables y autoridad sobre las acciones del sistema.
+
+La planta es responsable de sus estados internos y de las variables resultantes de la dinámica electromecánica. El controlador recibe las variables necesarias para la realimentación y tiene autoridad sobre las tensiones que aplica a la planta dentro de las restricciones establecidas por su propia configuración.
+
+Las referencias de corriente y velocidad pertenecen a la capa de control correspondiente. En particular, $i_d^\ast$ e $i_q^\ast$ constituyen referencias para el control de corriente, mi
