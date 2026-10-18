@@ -66,10 +66,9 @@ class StribeckFriction:
 
         magnitude = abs(omega_m)
 
-        stribeck = (
-            (p.ts - p.tc)
-            * math.exp(-((magnitude / p.omega_s) ** p.delta))
-        )
+        ratio = magnitude / p.omega_s
+        exp_term = math.exp(-(ratio ** p.delta)) if ratio < 100.0 else 0.0
+        stribeck = (p.ts - p.tc) * exp_term
 
         coulomb = p.tc * sign
         viscous = p.b * omega_m
