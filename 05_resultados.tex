@@ -1,0 +1,426 @@
+\chapter{Arquitectura híbrida FOC + Sugeno}
+\label{cap:resultados}
+
+\section{Introducción}
+\label{sec:cap5_intro}
+
+El presente capítulo presenta la arquitectura híbrida de control implementada sobre el Digital Twin del PMSM: un controlador FOC+PI como lazo de regulación de corriente y velocidad, complementado por un compensador difuso tipo Sugeno que estima y compensa la fricción no lineal de Stribeck.
+
+La organización del capítulo es la siguiente. La Sección~\ref{sec:cap5_arquitectura} describe la arquitectura general. La Sección~\ref{sec:cap5_diseno} presenta el diseño del compensador Sugeno (funciones de pertenencia, matriz de reglas y defuzzificación). La Sección~\ref{sec:cap5_verificacion} muestra la verificación numérica del compensador contra el modelo Stribeck. La Sección~\ref{sec:cap5_estabilidad} presenta el análisis de estabilidad del lazo cerrado. Las Secciones~\ref{sec:cap5_sensibilidad} y~\ref{sec:cap5_robustez} evalúan la sensibilidad y robustez del compensador. La Sección~\ref{sec:cap5_resultados} compara el desempeño del FOC+PI solo contra el FOC+PI con compensación. Finalmente, la Sección~\ref{sec:cap5_conclusiones} presenta las conclusiones del capítulo.
+
+\section{Arquitectura híbrida FOC + Sugeno}
+\label{sec:cap5_arquitectura}
+
+\subsection{Descripción general}
+\label{subsec:cap5_arquitectura_general}
+
+La arquitectura implementada se organiza en dos capas:
+
+\begin{enumerate}
+  \item \textbf{Capa de regulación (FOC+PI)}: controla las corrientes $i_d$ e $i_q$ en el marco $dq$ y la velocidad mecánica $\omega_m$. Es la capa convencional de referencia.
+  
+  \item \textbf{Capa de compensación (Sugeno)}: estima el par de fricción $\hat{T}_f(\omega_m)$ y lo suma a la referencia de corriente $i_q^*$. Es la capa inteligente que compensa la no linealidad.
+\end{enumerate}
+
+La Figura~\ref{fig:cap5_arquitectura} muestra la arquitectura completa. El FOC+PI actúa como regulador base. El compensador Sugeno recibe la velocidad medida $\omega_m$ y devuelve una estimación del par de fricción $\hat{T}_f$, que se suma a la referencia de corriente generada por el PI de velocidad. De esta forma, el PI de velocidad no tiene que luchar contra la fricción: el compensador se encarga de ella.
+
+\begin{figure}[H]
+\centering
+% Placeholder: reemplazar con diagrama_05_compensador_friccion.pdf
+\fbox{\parbox{0.9\textwidth}{\centering\textit{[Diagrama del compensador Sugeno de fricción]}}}
+\caption{Arquitectura híbrida FOC + Sugeno. El compensador estima el par de fricción $\hat{T}_f(\omega_m)$ y lo suma a la referencia de corriente $i_q^*$.}
+\label{fig:cap5_arquitectura}
+\end{figure}
+
+\subsection{Integración con el FOC}
+\label{subsec:cap5_integracion}
+
+La integración del compensador con el FOC se realiza en la referencia de corriente $i_q^*$:
+
+\begin{equation}
+i_q^{*,\text{total}} = i_q^{*,\text{PI}} + \hat{T}_f(\omega_m)
+\label{eq:cap5_integracion}
+\end{equation}
+
+donde $i_q^{*,\text{PI}}$ es la referencia generada por el PI de velocidad y $\hat{T}_f(\omega_m)$ es la estimación del par de fricción. Dado que el par electromagnético es $T_e = \frac{3}{2} p \lambda_m i_q$ (para SPMSM), sumar $\hat{T}_f$ a $i_q^*$ equivale a sumar $\hat{T}_f$ al par de referencia.
+
+La saturación de $i_q^*$ se aplica después de la suma, para respetar el límite físico de corriente del motor:
+
+\begin{equation}
+i_q^{*,\text{total}} = \text{clip}\left(i_q^{*,\text{PI}} + \hat{T}_f(\omega_m), -I_{q,\max}, I_{q,\max}\right)
+\label{eq:cap5_saturacion}
+\end{equation}
+
+\section{Diseño del compensador Sugeno}
+\label{sec:cap5_diseno}
+
+\subsection{Funciones de pertenencia}
+\label{subsec:cap5_mf}
+
+El compensador utiliza siete conjuntos difusos para la velocidad mecánica $\omega_m$, que cubren el rango operativo del motor ($[-500, +500]$ rad/s). La Tabla~\ref{tab:cap5_mf} resume las funciones de pertenencia.
+
+\begin{table}[H]
+\centering
+\caption{Funciones de pertenencia del compensador Sugeno.}
+\label{tab:cap5_mf}
+\small
+\begin{tabular}{@{}clll@{}}
+\toprule
+\textbf{Conjunto} & \textbf{Nombre} & \textbf{Tipo} & \textbf{Parámetros} \\
+\midrule
+NG & Negativo Grande & Z-shape & $a=-500$, $b=-50$ \\
+NM & Negativo Medio & Triangular & $a=-100$, $b=-50$, $c=-10$ \\
+NP & Negativo Pequeño & Triangular & $a=-50$, $b=-10$, $c=0$ \\
+C  & Cero & Gaussiana & $\mu=0$, $\sigma=3$ \\
+PP & Positivo Pequeño & Triangular & $a=0$, $b=10$, $c=50$ \\
+PM & Positivo Medio & Triangular & $a=10$, $b=50$, $c=100$ \\
+PG & Positivo Grande & S-shape & $a=50$, $b=500$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Las funciones de pertenencia se eligieron para cubrir los tres regímenes de fricción: viscoso (NG, PG), Stribeck (NM, NP, PP, PM) y transición estática (C).
+
+\subsection{Matriz de reglas}
+\label{subsec:cap5_reglas}
+
+El compensador utiliza siete reglas Sugeno, cada una con un consecuente lineal. La Tabla~\ref{tab:cap5_reglas} presenta la matriz de reglas.
+
+\begin{table}[H]
+\centering
+\caption{Matriz de reglas del compensador Sugeno.}
+\label{tab:cap5_reglas}
+\small
+\begin{tabular}{@{}cll@{}}
+\toprule
+\textbf{Regla} & \textbf{Antecedente} & \textbf{Consecuente ($\hat{T}_f$)} \\
+\midrule
+R1 & $\omega_m$ es NG & $\hat{T}_f = -0.50 + 0.010\omega_m$ \\
+R2 & $\omega_m$ es NM & $\hat{T}_f = 0.0095\omega_m - 0.55$ \\
+R3 & $\omega_m$ es NP & $\hat{T}_f = 0.0060\omega_m - 0.70$ \\
+R4 & $\omega_m$ es C  & $\hat{T}_f = 0$ \\
+R5 & $\omega_m$ es PP & $\hat{T}_f = 0.0060\omega_m + 0.70$ \\
+R6 & $\omega_m$ es PM & $\hat{T}_f = 0.0095\omega_m + 0.55$ \\
+R7 & $\omega_m$ es PG & $\hat{T}_f = +0.50 + 0.010\omega_m$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Justificación física}
+\label{subsec:cap5_justificacion}
+
+Los consecuentes lineales se obtuvieron mediante regresión lineal por mínimos cuadrados sobre el modelo de Stribeck en cada tramo de velocidad. Cada tramo corresponde a un régimen de fricción identificado en la literatura:
+
+\begin{itemize}
+  \item \textbf{NG y PG} ($|\omega_m| > 50$ rad/s): la fricción viscosa domina. El consecuente es lineal, con pendiente $B$ e intercepto $\pm T_c$.
+  
+  \item \textbf{NM y PM} ($10 < |\omega_m| < 100$ rad/s): la curva de Stribeck es visible. El consecuente es una aproximación lineal del tramo.
+  
+  \item \textbf{NP y PP} ($0 < |\omega_m| < 50$ rad/s): la fricción estática domina. Aproximación lineal del tramo.
+  
+  \item \textbf{C} ($|\omega_m| < 5$ rad/s): transición estática. El consecuente es $\hat{T}_f = 0$ (promedio).
+\end{itemize}
+
+\subsection{Defuzzificación}
+\label{subsec:cap5_defuzz}
+
+La defuzzificación se realiza mediante promedio ponderado (Sugeno):
+
+\begin{equation}
+\hat{T}_f(\omega_m) = \frac{\sum_{i=1}^{7} w_i \cdot T_{f,i}}{\sum_{i=1}^{7} w_i}
+\label{eq:cap5_defuzz}
+\end{equation}
+
+donde $w_i = \mu_i(\omega_m)$ es el grado de pertenencia de la función de pertenencia $i$, y $T_{f,i}$ es el consecuente de la regla $i$. Si $\sum w_i < 10^{-9}$, se devuelve $\hat{T}_f = 0$.
+
+
+\section{Verificación numérica}
+\label{sec:cap5_verificacion}
+
+\subsection{Modelo Stribeck de referencia}
+\label{subsec:cap5_modelo}
+
+La verificación numérica compara la salida del compensador Sugeno contra el modelo de Stribeck utilizado como referencia en el Capítulo~\ref{cap:gemelo_digital}. Los parámetros del escenario son: $T_c = 0.50$ Nm, $T_s = 0.80$ Nm, $\omega_s = 10$ rad/s, $\delta = 2$, $B = 0.010$ Nm$\cdot$s/rad.
+
+\subsection{Error de aproximación}
+\label{subsec:cap5_error}
+
+La Tabla~\ref{tab:cap5_verificacion} resume el error entre el modelo Stribeck y la salida del compensador.
+
+\begin{table}[H]
+\centering
+\caption{Error de aproximación del compensador Sugeno respecto al modelo Stribeck.}
+\label{tab:cap5_verificacion}
+\small
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Métrica} & \textbf{Valor} \\
+\midrule
+Error máximo absoluto & 0.7395 Nm \\
+Error medio absoluto & 0.0119 Nm \\
+Error máximo relativo & 13.45\% \\
+Error medio relativo & 0.22\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El error medio es del 0.22\%, lo que indica que el compensador reproduce el modelo Stribeck con alta fidelidad. El error máximo (13.45\%) se localiza en las transiciones entre regiones, donde la aproximación lineal por tramos es menos precisa.
+
+La Figura~\ref{fig:cap5_verificacion} muestra la comparación entre el modelo Stribeck y la salida del compensador.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{02_figuras/verificacion_sistema_completo.png}
+\caption{Verificación del compensador Sugeno contra el modelo Stribeck.}
+\label{fig:cap5_verificacion}
+\end{figure}
+
+\section{Análisis de estabilidad}
+\label{sec:cap5_estabilidad}
+
+\subsection{Linealización en punto de operación}
+\label{subsec:cap5_linealizacion}
+
+El análisis de estabilidad se realiza sobre el modelo linealizado en un punto de operación de baja velocidad ($\omega_m = 5$ rad/s), donde la fricción Stribeck es dominante. El modelo linealizado tiene tres estados: $[i_d, i_q, \omega_m]$.
+
+La matriz de estado del sistema linealizado es:
+
+\begin{equation}
+A = \begin{bmatrix}
+-R_s/L_d & \omega_e L_q/L_d & 0 \\
+-\omega_e L_d/L_q & -R_s/L_q & -p\lambda_m/L_q \\
+0 & \frac{3}{2}p\lambda_m/J & -(B+K_{\text{comp}})/J
+\end{bmatrix}
+\label{eq:cap5_matriz_A}
+\end{equation}
+
+donde $K_{\text{comp}}$ es la pendiente local del compensador en el punto de operación.
+
+\subsection{Polos del lazo cerrado}
+\label{subsec:cap5_polos}
+
+La Tabla~\ref{tab:cap5_polos} presenta los polos del lazo cerrado con el controlador PI de velocidad.
+
+\begin{table}[H]
+\centering
+\caption{Polos del lazo cerrado.}
+\label{tab:cap5_polos}
+\small
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Polo} & \textbf{Valor} \\
+\midrule
+$p_1$ & $-22.63 + 857.89j$ \\
+$p_2$ & $-22.63 - 857.89j$ \\
+$p_3$ & $-41.65$ \\
+$p_4$ & $-0.22$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Todos los polos tienen parte real negativa, lo que confirma que el sistema en lazo cerrado es \textbf{estable}. El polo dominante ($p_4 = -0.22$) determina la constante de tiempo del sistema ($\tau \approx 4.5$ s).
+
+\subsection{Márgenes de estabilidad}
+\label{subsec:cap5_margenes}
+
+La Tabla~\ref{tab:cap5_margenes} resume los márgenes de estabilidad.
+
+\begin{table}[H]
+\centering
+\caption{Márgenes de estabilidad del lazo abierto.}
+\label{tab:cap5_margenes}
+\small
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Métrica} & \textbf{Valor} \\
+\midrule
+Margen de ganancia & $\infty$ dB \\
+Margen de fase & $3.27^\circ$ \\
+Frecuencia de cruce de fase & 857.54 rad/s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El margen de ganancia es infinito, lo que indica que el sistema nunca cruza $-180^\circ$. El margen de fase es bajo ($3.27^\circ$), lo que sugiere que el sistema es sensible a retrasos. La mejora de este margen mediante un ajuste de las ganancias del PI se declara como trabajo futuro.
+
+La Figura~\ref{fig:cap5_root_locus} muestra el lugar de raíces.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{02_figuras/estabilidad_root_locus.png}
+\caption{Lugar de raíces del lazo de velocidad.}
+\label{fig:cap5_root_locus}
+\end{figure}
+
+La Figura~\ref{fig:cap5_bode} muestra el diagrama de Bode.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{02_figuras/estabilidad_bode.png}
+\caption{Diagrama de Bode del lazo abierto.}
+\label{fig:cap5_bode}
+\end{figure}
+
+La Figura~\ref{fig:cap5_step} muestra la respuesta al escalón del lazo cerrado.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{02_figuras/estabilidad_step.png}
+\caption{Respuesta al escalón del lazo cerrado.}
+\label{fig:cap5_step}
+\end{figure}
+
+\section{Análisis de sensibilidad}
+\label{sec:cap5_sensibilidad}
+
+\subsection{Variación de parámetros de fricción}
+\label{subsec:cap5_sensibilidad_params}
+
+El análisis de sensibilidad evalúa cómo cambia el error de seguimiento (MAE) cuando varían los parámetros de fricción. Se realizaron tres barridos: $B$ ($\pm 50\%$), $T_c$ ($\pm 50\%$) y $T_s$ ($\pm 25\%$). La variación de $T_s$ se limitó a $\pm 25\%$ para mantener la restricción $T_s \geq T_c$.
+
+\subsection{Resultados}
+\label{subsec:cap5_sensibilidad_resultados}
+
+La Tabla~\ref{tab:cap5_sensibilidad} resume los resultados del barrido de $B$.
+
+\begin{table}[H]
+\centering
+\caption{Sensibilidad del MAE a la fricción viscosa $B$.}
+\label{tab:cap5_sensibilidad}
+\small
+\begin{tabular}{@{}cccc@{}}
+\toprule
+\textbf{$B$ [Nm$\cdot$s/rad]} & \textbf{MAE alta} & \textbf{MAE baja} & \textbf{MAE reversión} \\
+\midrule
+0.005 & 0.4948 & 0.1592 & 0.3951 \\
+0.0075 & 0.5303 & 0.1627 & 0.4020 \\
+0.010 & 0.5657 & 0.1663 & 0.4088 \\
+0.0125 & 0.6010 & 0.1699 & 0.4156 \\
+0.015 & 0.6363 & 0.1734 & 0.4224 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El MAE aumenta con $B$ en los tres regímenes. La variación es moderada: $\pm 50\%$ en $B$ produce cambios en MAE menores al 30\% en alta velocidad y menores al 10\% en baja velocidad y reversión. El compensador es \textbf{robusto} ante variaciones de $B$.
+
+La Figura~\ref{fig:cap5_sensibilidad} muestra los tres barridos.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{02_figuras/sensibilidad_friccion.png}
+\caption{Sensibilidad del MAE a los parámetros de fricción $B$, $T_c$ y $T_s$.}
+\label{fig:cap5_sensibilidad}
+\end{figure}
+
+El barrido de $T_c$ muestra un comportamiento similar: el MAE aumenta con $T_c$ en los tres regímenes, con variaciones moderadas ($\pm 50\%$ produce cambios menores al 30\%). El barrido de $T_s$ muestra que el MAE es casi insensible en alta velocidad y reversión ($\pm 25\%$ produce cambios menores al 0.5\%), pero muy sensible en baja velocidad ($\pm 25\%$ produce cambios de hasta 77.5\%). Esto refleja que $T_s$ es el parámetro dominante en la región Stribeck.
+
+
+\section{Análisis de robustez}
+\label{sec:cap5_robustez}
+
+\subsection{Escenarios de incertidumbre}
+\label{subsec:cap5_robustez_escenarios}
+
+El análisis de robustez evalúa el desempeño del compensador ante incertidumbre combinada en los parámetros de fricción. Se generaron 20 escenarios con variación aleatoria uniforme de $\pm 30\%$ en $B$, $T_c$ y $T_s$, con la restricción $T_s \geq T_c$. Para cada escenario, se simularon los tres regímenes (alta velocidad, baja velocidad y reversión) con y sin compensación.
+
+\subsection{Resultados}
+\label{subsec:cap5_robustez_resultados}
+
+La Tabla~\ref{tab:cap5_robustez} resume la mejora porcentual del MAE en los 20 escenarios.
+
+\begin{table}[H]
+\centering
+\caption{Mejora porcentual del MAE en 20 escenarios de incertidumbre ($\pm 30\%$ en $B$, $T_c$, $T_s$).}
+\label{tab:cap5_robustez}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Régimen} & \textbf{Media} & \textbf{Mediana} & \textbf{Mín} & \textbf{Máx} \\
+\midrule
+Alta & 25.0\% & 25.2\% & 22.4\% & 27.1\% \\
+Baja & 35.1\% & 35.0\% & 27.7\% & 43.6\% \\
+Reversión & 14.8\% & 15.0\% & 13.9\% & 15.5\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La mejora se mantiene positiva en todos los escenarios, lo que demuestra la robustez del compensador ante incertidumbre paramétrica. La mejora es consistente (baja dispersión) en alta velocidad y reversión, y algo más variable en baja velocidad (rango 27.7\%--43.6\%), donde $T_s$ tiene mayor influencia.
+
+La Figura~\ref{fig:cap5_robustez} muestra los histogramas de mejora por régimen.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{02_figuras/robustez_histograma.png}
+\caption{Histogramas de mejora del MAE en 20 escenarios de incertidumbre.}
+\label{fig:cap5_robustez}
+\end{figure}
+
+\section{Resultados comparativos}
+\label{sec:cap5_resultados}
+
+\subsection{Comparación PI solo vs PI + compensador}
+\label{subsec:cap5_comparacion}
+
+La Tabla~\ref{tab:cap5_comparacion} compara el MAE del FOC+PI solo contra el FOC+PI con compensación Sugeno en los tres regímenes.
+
+\begin{table}[H]
+\centering
+\caption{Comparación del MAE entre FOC+PI solo y FOC+PI + compensador Sugeno.}
+\label{tab:cap5_comparacion}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Régimen} & \textbf{PI solo} & \textbf{PI + compensador} & \textbf{Mejora} \\
+\midrule
+Alta (50 rad/s) & 0.7503 & 0.5657 & 24.6\% \\
+Baja (5 rad/s) & 0.2525 & 0.1663 & 34.1\% \\
+Reversión ($\pm 20$ rad/s) & 0.4794 & 0.4088 & 14.7\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El compensador mejora el MAE en los tres regímenes. La mayor mejora se observa en baja velocidad (34.1\%), donde la fricción Stribeck es dominante. La mejora en alta velocidad (24.6\%) refleja la compensación de la fricción viscosa. La mejora en reversión (14.7\%) refleja la compensación en las transiciones.
+
+La Figura~\ref{fig:cap5_comparacion} muestra la comparación de la respuesta de velocidad.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{02_figuras/fig_comparacion_compensador.png}
+\caption{Comparación de la respuesta de velocidad: PI solo vs PI + compensador.}
+\label{fig:cap5_comparacion}
+\end{figure}
+
+La Figura~\ref{fig:cap5_error} muestra la comparación del error de velocidad.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{02_figuras/fig_error_compensador.png}
+\caption{Comparación del error de velocidad: PI solo vs PI + compensador.}
+\label{fig:cap5_error}
+\end{figure}
+
+\subsection{Interpretación}
+\label{subsec:cap5_interpretacion}
+
+Los resultados muestran que el compensador Sugeno de fricción mejora el seguimiento de velocidad en los tres regímenes evaluados. La mejora es consistente con el análisis de sensibilidad y robustez: el compensador es efectivo incluso cuando los parámetros de fricción varían.
+
+La mejora en baja velocidad (34.1\%) es particularmente relevante para el contexto de robots cartesianos de paletizado, donde la precisión en la colocación de cargas requiere un seguimiento preciso a baja velocidad.
+
+\section{Conclusiones del capítulo}
+\label{sec:cap5_conclusiones}
+
+Este capítulo presentó la arquitectura híbrida FOC + Sugeno implementada sobre el Digital Twin del PMSM. Las principales conclusiones son:
+
+\begin{enumerate}
+  \item El compensador Sugeno de 7 reglas reproduce el modelo Stribeck con un error medio del 0.22\% y un error máximo del 13.45\%.
+  
+  \item El lazo cerrado es estable: todos los polos tienen parte real negativa, con margen de ganancia infinito y margen de fase de $3.27^\circ$.
+  
+  \item El compensador es robusto ante variaciones de $B$ y $T_c$ ($\pm 50\%$ produce cambios en MAE menores al 30\%), pero sensible a $T_s$ en baja velocidad ($\pm 25\%$ produce cambios de hasta 77.5\%).
+  
+  \item En 20 escenarios de incertidumbre ($\pm 30\%$), el compensador mejora el MAE en todos los casos: 25.0\% $\pm$ 2.4\% en alta velocidad, 35.1\% $\pm$ 5.1\% en baja velocidad, y 14.8\% $\pm$ 0.5\% en reversión.
+  
+  \item La comparación directa PI solo vs PI + compensador muestra mejoras de 24.6\% (alta), 34.1\% (baja) y 14.7\% (reversión).
+\end{enumerate}
+
+El compensador Sugeno de fricción constituye una contribución metodológica y técnica de la tesis: demuestra que una capa difusa tipo Sugeno, integrada sobre un FOC+PI convencional, mejora el seguimiento de velocidad en presencia de fricción no lineal. La extensión a ANFIS entrenado se declara como trabajo futuro.
