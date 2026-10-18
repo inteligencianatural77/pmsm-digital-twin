@@ -1,0 +1,116 @@
+\chapter{Introducción}
+\label{cap:introduccion}
+
+\section{Contexto}
+\label{sec:contexto}
+
+Los accionamientos eléctricos basados en motores síncronos de imanes permanentes (PMSM, por sus siglas en inglés) constituyen una tecnología ampliamente utilizada en aplicaciones que requieren elevada precisión de movimiento, respuesta dinámica y regulación controlada de velocidad y par. La alta densidad de potencia, eficiencia y capacidad de respuesta de este tipo de máquinas las hace especialmente adecuadas para sistemas servo y aplicaciones de automatización donde el comportamiento dinámico del accionamiento influye directamente sobre el desempeño del sistema. En el contexto de la Industria 4.0, la integración de técnicas de inteligencia artificial y gemelos digitales en los accionamientos eléctricos representa una línea de desarrollo vinculada con los sistemas ciberfísicos de manufactura \cite{kagermann2013recommendations, lee2015cyber, cortes2017entorno, Gubbi2013}.
+
+\subsection{Robots cartesianos de paletizado}
+\label{subsec:robots_cartesianos}
+
+Los robots cartesianos de paletizado son sistemas de manipulación industrial ampliamente utilizados en sectores como alimentos, logística, construcción, automotriz y química. Su función principal es el traslado y posicionamiento de cargas variables (típicamente 25 a 50 kg) en líneas de producción. Estos sistemas operan a baja velocidad para garantizar la precisión en la colocación de cajas, y realizan ciclos repetitivos de arranque, parada y reversión \cite{abb_paletizado, kuka_paletizado}.
+
+\subsection{Motor Siemens SIMOTICS S-1FT7087}
+\label{subsec:motor_siemens}
+
+El motor Siemens SIMOTICS S-1FT7087 es un servoaccionamiento de alta capacidad y precisión (21.7 kW de potencia, 46 Nm de par nominal, encoder absoluto) que se emplea en los ejes principales de robots cartesianos de paletizado. Su alta densidad de potencia, precisión y dinámica lo hacen adecuado para aplicaciones de manipulación de alta capacidad \cite{siemens_1ft7_manual}.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{02_figuras/diagrama_07_robot_cartesiano.png}
+\caption{Pórtico cartesiano de paletizado de 3 ejes (X, Y, Z). El motor PMSM Siemens 1FT7087 acciona el eje Z. Las guías lineales presentan fricción no lineal (Stribeck).}
+\label{fig:cap1_robot}
+\end{figure}
+
+
+\subsection{Fricción no lineal como problema}
+\label{subsec:friccion_problema}
+
+Las guías lineales de los robots cartesianos presentan fricción no lineal (modelo de Stribeck) que se manifiesta en regímenes de baja velocidad, arranque, parada y reversión. Esta fricción degrada el seguimiento de velocidad y la repetibilidad del posicionamiento, especialmente cuando el FOC+PI de ganancias fijas no la compensa directamente \cite{armstrong1994survey, dewit1995new}.
+
+\section{Planteamiento del problema}
+\label{sec:problema}
+
+\subsection{Problema general}
+\label{subsec:problema_general}
+
+Los robots cartesianos de paletizado requieren un control preciso de velocidad para colocar cajas de 25 a 50 kg con alta repetibilidad. Las guías lineales presentan fricción no lineal (Stribeck) que degrada el seguimiento en regímenes de baja velocidad, arranque, parada y reversión.
+
+\subsection{Problema específico}
+\label{subsec:problema_especifico}
+
+El FOC+PI de ganancias fijas, típicamente usado en los servoaccionamientos de estos robots, no compensa directamente la fricción Stribeck. Esto genera error de seguimiento aumentado, stick-slip y degradación de la repetibilidad.
+
+\subsection{Oportunidad}
+\label{subsec:oportunidad}
+
+Una arquitectura híbrida FOC + Control Difuso tipo Sugeno puede manejar las no linealidades del sistema (fricción, variación de carga) sin modificar el FOC base. El Digital Twin trazable permite estudiar y evaluar esta arquitectura sin acceso al motor físico.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{02_figuras/diagrama_06_jerarquia_contribuciones.png}
+\caption{Jerarquía de contribuciones de la tesis. La contribución central es el Digital Twin del PMSM. La aplicación es la arquitectura híbrida FOC + Sugeno. El trabajo futuro incluye ANFIS entrenado, TinyML y validación experimental.}
+\label{fig:cap1_jerarquia}
+\end{figure}
+
+\section{Justificación}
+\label{sec:justificacion}
+
+La presente tesis se justifica en cuatro aspectos complementarios. \textbf{Técnicamente}, el motor Siemens 1FT7087 es un servoaccionamiento de alta capacidad y precisión cuyo modelado computacional permite estudiar y desarrollar estrategias de control sin acceso físico al motor. \textbf{Metodológicamente}, el Digital Twin proporciona una plataforma reproducible y trazable para evaluar estrategias de control bajo condiciones controladas, con cada parámetro del modelo documentado y verificado. \textbf{Industrialmente}, los robots cartesianos de paletizado son una aplicación real del motor, y la mejora del seguimiento en baja velocidad impacta directamente en la repetibilidad y calidad del proceso. \textbf{Académicamente}, la tesis integra tres áreas: modelado de máquinas eléctricas, control vectorial (FOC) y control inteligente (difuso Sugeno), y el análisis de estabilidad, sensibilidad y robustez completa la formación en control.
+\section{Pregunta de investigación}
+\label{sec:pregunta}
+
+¿Es posible construir un Digital Twin trazable de un PMSM de alta capacidad y precisión (Siemens 1FT7087) que reproduzca fielmente su comportamiento dinámico bajo condiciones de fricción no lineal, y que permita diseñar, evaluar y analizar una arquitectura híbrida FOC + Control Difuso tipo Sugeno con resultados reproducibles y documentados?
+
+\section{Objetivo general}
+\label{sec:objetivo_general}
+
+Construir un Digital Twin computacional trazable de un PMSM de alta capacidad y precisión (Siemens 1FT7087) que reproduzca su comportamiento dinámico bajo condiciones de fricción no lineal, y demostrar su utilidad mediante el diseño, evaluación y análisis de una arquitectura híbrida FOC + Control Difuso tipo Sugeno para manejar las no linealidades del sistema, en el contexto de robots cartesianos de paletizado.
+
+\section{Objetivos específicos}
+\label{sec:objetivos_especificos}
+
+\begin{itemize}
+  \item Construir un Digital Twin trazable del PMSM desde el manual Siemens, manteniendo trazabilidad explícita de cada valor.
+  
+  \item Verificar la consistencia interna del modelo y modelar la fricción no lineal (Stribeck).
+  
+  \item Implementar el FOC+PI como referencia convencional sobre el Digital Twin.
+  
+  \item Diseñar e implementar una arquitectura híbrida FOC + Control Difuso tipo Sugeno (7 reglas de compensación de fricción).
+  
+  \item Evaluar el desempeño del FOC+PI con y sin la capa difusa en tres regímenes (alta velocidad, baja velocidad, reversión), incluyendo análisis de estabilidad, sensibilidad y robustez.
+  
+  \item Documentar la extensión a ANFIS entrenado como trabajo futuro con procedimiento definido.
+\end{itemize}
+
+\section{Alcance}
+\label{sec:alcance}
+
+Esta tesis comprende:
+
+\begin{itemize}
+  \item La construcción del Digital Twin del PMSM a partir del manual Siemens, con trazabilidad de cada parámetro (Capítulo \ref{cap:gemelo_digital}).
+  
+  \item La implementación del FOC+PI como referencia sobre el Digital Twin (Capítulo \ref{cap:experimentos}).
+  
+  \item El diseño e implementación de la arquitectura híbrida FOC + Control Difuso tipo Sugeno (Capítulo \ref{cap:resultados}).
+  
+  \item La evaluación comparativa del desempeño con y sin la capa difusa, incluyendo análisis de estabilidad, sensibilidad y robustez (Capítulo \ref{cap:resultados}).
+\end{itemize}
+
+Esta tesis no comprende:
+
+\begin{itemize}
+  \item El modelado del robot cartesiano completo.
+  
+  \item La validación experimental con el motor físico Siemens 1FT7087.
+  
+  \item El entrenamiento de ANFIS con datos experimentales (se declara como trabajo futuro).
+  
+  \item Los mapas FEM de flujo y torque (se declaran como trabajo futuro).
+\end{itemize}
+
+Los resultados presentados se obtuvieron mediante simulación sobre el Digital Twin. Las afirmaciones sobre el comportamiento del motor físico se limitan a las condiciones modeladas y no constituyen una validación experimental.
+

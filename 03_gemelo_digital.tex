@@ -1,0 +1,233 @@
+\chapter{Gemelo digital del PMSM: Ingeniería inversa y trazabilidad}
+
+\section{Introducción y objetivo de fidelidad}
+
+El presente capítulo documenta la construcción del gemelo digital computacional del accionamiento PMSM Siemens SIMOTICS S-1FT7087-7WH70-4CH0. El objetivo es obtener una representación computacional con parámetros trazables y relaciones matemáticas coherentes. La consistencia se examina mediante comprobaciones cruzadas entre los datos de referencia y los valores calculados. Estas comprobaciones permiten evaluar la coherencia de la parametrización, pero no representan por sí solas una medida global del error frente al motor físico. La fidelidad se analiza de acuerdo con el alcance y la evidencia disponibles para cada magnitud y condición de operación.
+
+La metodología se rige por una regla estricta de priorización: \textbf{TRAZABILIDAD $>$ COMPLETITUD $>$ APROXIMACIÓN}. Ninguna cifra utilizada en este modelo carece de procedencia documentada. Cada parámetro se clasifica explícitamente en una de las siguientes categorías:
+\begin{itemize}
+    \item \textbf{[SIEMENS-DIRECTO]}: Dato extraído textualmente de la documentación del fabricante.
+    \item \textbf{[CALCULADO-DESDE-SIEMENS]}: Valor derivado matemáticamente a partir de datos directos, con verificación de consistencia.
+    \item \textbf{[SUPUESTO-MODELO]}: Hipótesis de ingeniería necesaria para cerrar el modelo, declarada explícitamente con su impacto en la incertidumbre.
+\end{itemize}
+
+La arquitectura estudiada integra el escenario de operación, el controlador de campo orientado (FOC), el Digital Twin del PMSM y un supervisor difuso basado en reglas expertas que modifica las ganancias del PI de velocidad. El FOC utiliza las referencias de corriente y las condiciones de carga para calcular las señales de tensión aplicadas a la planta computacional, mientras que el Digital Twin proporciona las corrientes, las variables en el marco \(dq\), la velocidad mecánica, la posición y el par electromagnético. Como ampliación de esta arquitectura se contempla un supervisor ANFIS, cuya estructura difusa inicial podrá partir de criterios expertos y cuyos parámetros deberán ajustarse mediante entrenamiento documentado. La figura debe interpretarse de acuerdo con los bloques efectivamente implementados; cualquier bloque ANFIS que aún no esté conectado y evaluado representa una ampliación prevista, no un componente ya validado.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.94\textwidth]{pruebas_diagramas/diagrama_02_arquitectura_general.pdf}
+    \caption{Arquitectura general del sistema de control y del gemelo digital PMSM.}
+    \label{fig:arquitectura-general-twin}
+\end{figure}
+
+\section{Fuente primaria y caracterización de la planta}
+
+La fuente única de verdad para la parametrización es el manual \textit{S-1FT7 synchronous motors -- Configuration Manual}, documento A5E45099423B AB, edición 03/2024 (404 páginas) \cite{Siemens2024}. 
+
+Se identificó una discrepancia nominal en la nomenclatura de las gráficas del manual (pág. 361, título "1FT7087-7WH71"), la cual no coincide exactamente con el MLFB objetivo (1FT7087-7WH70-4CH0). Por rigor metodológico, \textbf{las curvas gráficas se tratan únicamente como cualitativamente representativas}. Todos los anclajes cuantitativos del gemelo provienen exclusivamente de la tabla numérica de la página 360, la cual sí coincide punto por punto con la placa del motor.
+El proceso de construcción del Digital Twin parte de la documentación técnica del fabricante como referencia para identificar los parámetros nominales y las características de operación del PMSM. A partir de estos datos se establecen tres categorías complementarias: parámetros obtenidos directamente de la documentación, magnitudes calculadas mediante relaciones matemáticas fundamentadas en dichos datos y supuestos adoptados para formular las partes del modelo que requieren una representación explícita. Esta distinción permite conservar la procedencia de cada magnitud y diferenciar los datos de referencia de los resultados derivados y las decisiones de modelado. La parametrización resultante se integra en el modelo computacional y se examina mediante comprobaciones de consistencia y ensayos de simulación. De este modo, la ingeniería inversa constituye el procedimiento metodológico para construir y fundamentar el Digital Twin, mientras que las comprobaciones y los ensayos aportan evidencias diferenciadas sobre su coherencia y comportamiento.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{pruebas_diagramas/diagrama_03_flujo_ingenieria_inversa.pdf}
+    \caption{Flujo de ingeniería inversa desde la documentación técnica hasta la evaluación del modelo PMSM.}
+    \label{fig:flujo-ingenieria-inversa}
+\end{figure}
+
+
+\subsection{Estados, entradas y salidas de la planta base}
+
+La planta base del gemelo digital se implementa mediante la clase
+\texttt{PMSMBase}, parametrizada por \texttt{PMSMParameters}. Su interfaz
+interna se organiza mediante las estructuras \texttt{PlantInput} y
+\texttt{PlantOutput}. Estas estructuras constituyen una interfaz propuesta
+para el modelo computacional y no deben interpretarse como nombres de buses
+de la implementación original en CloudE.
+
+El vector de estado interno se define como
+\[
+\mathbf{x} =
+\begin{bmatrix}
+i_d & i_q & \omega_m & \theta_m
+\end{bmatrix}^{\mathsf T},
+\]
+donde \(i_d\) e \(i_q\) son las corrientes en el marco síncrono \(dq\),
+\(\omega_m\) es la velocidad angular mecánica y \(\theta_m\) es la posición
+angular mecánica. La configuración inicial implementada establece los
+cuatro estados en cero.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{02_figuras/diagrama_04_digital_twin.png}
+\caption{Arquitectura del Digital Twin del PMSM. Modelo eléctrico dq + dinámica mecánica + fricción Stribeck.}
+\label{fig:cap3_twin}
+\end{figure}
+
+Las entradas de la planta son las tensiones de fase \(v_a\), \(v_b\) y
+\(v_c\), expresadas en voltios, y el par resistente total \(T_{\mathrm{load}}\),
+expresado en newton metro. En el modelo base, este último representa la
+carga resistente aplicada; no se añaden por separado términos de fricción
+viscosa o de Coulomb, cuyos parámetros continúan pendientes de verificación.
+
+Las salidas de la interfaz son las corrientes de fase \(i_a\), \(i_b\) e
+\(i_c\), las corrientes \(i_d\) e \(i_q\), la velocidad \(\omega_m\), la
+posición \(\theta_m\) y el par electromagnético \(T_e\). Las magnitudes
+eléctricas y mecánicas se expresan, respectivamente, en amperios, radianes
+por segundo, radianes y newton metro.
+
+La conversión entre las variables angulares mecánicas y eléctricas utiliza
+el número de pares de polos \(p=4\):
+\[
+\theta_e = p\,\theta_m,
+\qquad
+\omega_e = p\,\omega_m.
+\]
+La transformación de Park sigue la convención
+\texttt{QleadsD\_AphaseToDaxis}, según la cual la fase A queda alineada
+con el eje \(d\) cuando \(\theta_e=0\).
+
+La implementación actual integra los estados mediante Euler explícito.
+Este método se registra como una decisión numérica propuesta para la
+implementación computacional; su uso no constituye, por sí mismo, una
+validación de la fidelidad dinámica frente al motor físico. Asimismo, la
+expresión del par electromagnético implementada se conserva como ecuación
+de referencia del modelo, sin afirmar que se haya demostrado que coincide
+exactamente con la ley interna de Simscape M4.
+
+\section{Matriz maestra de parámetros y validación cruzada}
+
+La Tabla~\ref{tab:parametros_pmsm} distingue los datos identificados directamente en la documentación de Siemens, las magnitudes calculadas a partir de ellos y los supuestos adoptados para el modelo. Esta clasificación identifica la procedencia de cada valor y evita interpretar los resultados derivados o los supuestos como especificaciones publicadas por el fabricante.
+
+\begin{table}[H]
+\centering
+\caption{Matriz de parámetros del PMSM y estado de trazabilidad.}
+\label{tab:parametros_pmsm}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.5cm}
+                >{\centering\arraybackslash}p{1.8cm}
+                >{\centering\arraybackslash}p{2.2cm}
+                >{\raggedright\arraybackslash}p{5.5cm}}
+\toprule
+\textbf{Parámetro} & \textbf{Valor} & \textbf{Unidad} & \textbf{Estado de Trazabilidad} \\
+\midrule
+Velocidad nominal ($n_N$) & 4500 & rpm & [SIEMENS-DIRECTO] \\
+Par nominal ($M_N$, 100K) & 46 & N·m & [SIEMENS-DIRECTO] \\
+Corriente nominal ($I_N$, 100K) & 53 & A (RMS) & [SIEMENS-DIRECTO] \\
+Par de bloqueo ($M_0$, 100K) & 61 & N·m & [SIEMENS-DIRECTO] \\
+Corriente de bloqueo ($I_0$, 100K) & 67 & A (RMS) & [SIEMENS-DIRECTO] \\
+Par máximo ($M_{\max}$) & 150 & N·m & [SIEMENS-DIRECTO] \\
+Corriente máxima ($I_{\max}$) & 225 & A (RMS) & [SIEMENS-DIRECTO] \\
+Pares de polos ($p$) & 4 & --- & [CALCULADO-DESDE-SIEMENS] ($2p/2$) \\
+Constante de par ($k_T$, 100K) & 0.91 & N·m/A & [SIEMENS-DIRECTO] \\
+Constante de tensión ($k_E$, 20°C) & 58 & V/1000 rpm & [SIEMENS-DIRECTO] \\
+Resistencia de estator ($R_s$, 20°C) & 0.046 & $\Omega$ & [SIEMENS-DIRECTO] \\
+Inductancia de campo ($L_D$) & 1.2 & mH & [SIEMENS-DIRECTO] \\
+Inercia con freno ($J$) & $41.6 \times 10^{-4}$ & kg·m² & [SIEMENS-DIRECTO] \\
+Flujo magnético frío ($\psi_{20}$) & 0.11306 & Wb & [CALCULADO-DESDE-SIEMENS] \\
+Flujo magnético caliente ($\psi_{100K}$) & 0.10724 & Wb & [CALCULADO-DESDE-SIEMENS] \\
+Inductancias $L_d, L_q$ & 1.2 & mH & [SUPUESTO-MODELO] ($L_d=L_q=L_D$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.88\textwidth]{02_figuras/fig_twin_anclas_operacion.pdf}
+    \caption{Anclas de operación documentadas para la caracterización
+    del PMSM. Los puntos representan valores identificados en la
+    documentación técnica; no constituyen una curva continua ni
+    una medición experimental propia.}
+    \label{fig:twin-anclas-operacion}
+\end{figure}
+
+
+\subsection{Validación matemática de consistencia interna}
+
+Para garantizar el objetivo de error $< 3\%$, se realizaron tres comprobaciones cruzadas fundamentales entre los datos directos y los calculados:
+
+\begin{enumerate}
+    \item \textbf{Potencia mecánica nominal:} $P = M_N \cdot \omega_N = 46 \times (2\pi \cdot 4500 / 60) = 21\,676.6$ W. Comparado con $P_{\text{opt}} = 21\,700$ W del manual, el \textbf{error es de 0.11\%}.
+    \item \textbf{Par de bloqueo vía constante de par:} $M_{\text{calc}} = k_T \cdot I_0 = 0.91 \times 67 = 60.97$ N·m. Comparado con $M_0 = 61$ N·m, el \textbf{error es de 0.05\%}.
+    \item \textbf{Constante eléctrica:} $\tau_e = L_D / R_s = 1.2 \times 10^{-3} / 0.046 = 26.09$ ms. Comparado con $T_{el} = 26$ ms, el \textbf{error es de 0.33\%}.
+\end{enumerate}
+
+Estas tres comprobaciones muestran una concordancia numérica estrecha entre los valores calculados y sus respectivas referencias documentales. Su alcance es verificar la consistencia interna de los parámetros seleccionados; no constituyen, por sí solas, una validación global del modelo electromagnético ni una medición del error frente al motor físico.
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.82\textwidth]{02_figuras/fig_twin_consistencia_parametros.pdf}
+    \caption{Errores relativos de las comprobaciones de consistencia
+    interna del gemelo digital: potencia nominal, par de bloqueo
+    y constante de tiempo eléctrica. Son verificaciones calculadas
+    a partir de los parámetros seleccionados, no errores medidos
+    frente al motor físico.}
+    \label{fig:twin-consistencia-parametros}
+\end{figure}
+
+\section{Reconstrucción de envolventes y supuestos de modelado}
+
+Dado que el fabricante no publica todas las curvas de forma numérica, el gemelo digital reconstruye las envolventes de operación (Par-Velocidad, Corriente-Velocidad) utilizando un modelo FOC de motor de imanes superficiales (SPM). Para ello, se declaran explícitamente los siguientes supuestos:
+
+\begin{itemize}
+    \item \textbf{Supuesto 1 (Tensión máxima):} $V_{\max} \approx 380$ V útiles (línea-línea RMS), coherente con un bus de DC de 600 V y la caída en el inversor.
+    \item \textbf{Supuesto 2 (Flujo de operación):} Se utiliza $\psi = 0.10724$ Wb (derivado de $k_T$ a 100K) en lugar del valor a 20°C, ya que las curvas de límite de par del fabricante están calculadas a temperatura de operación.
+    \item \textbf{Supuesto 3 (Inductancias):} $L_d = L_q = L_D = 1.2$ mH. El manual solo publica la inductancia de campo giratorio ($L_D$). Asumir igualdad es estándar para SPM, pero introduce incertidumbre en la predicción exacta de la "rodilla" de debilitamiento de campo.
+    \item \textbf{Supuesto 4 (Resistencia térmica):} $R_{\text{operación}} \approx 0.064\,\Omega$ (estimación del cobre a $\sim$120°C).
+    \item \textbf{Fricción mecánica pendiente de parametrización:}
+    los parámetros del modelo de fricción, incluidos los términos de Coulomb,
+    Stribeck y viscoso, requieren una identificación sustentada por ensayos.
+    No se consideran valores confirmados por la documentación del fabricante.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{02_figuras/fig_twin_respuesta_dinamica.pdf}
+    \caption{Respuesta simulada del PMSM en el ensayo B2.3, con
+    referencia de velocidad de $100\,\mathrm{rad/s}$ y escalones
+    de par de carga de $0$ a $5\,\mathrm{N\,m}$ en $0.100\,\mathrm{s}$,
+    de $5$ a $10\,\mathrm{N\,m}$ en $0.150\,\mathrm{s}$ y retorno
+    a $5\,\mathrm{N\,m}$ en $0.175\,\mathrm{s}$. Se muestran la
+    velocidad, el par electromagnético junto con el par de carga,
+    y la corriente $i_q$. Simulación con paso temporal de
+    $50\,\mu\mathrm{s}$; los resultados no constituyen una
+    validación experimental del motor físico.}
+    \label{fig:twin-respuesta-dinamica}
+\end{figure}
+
+\section{Matriz de validación del gemelo y limitaciones}
+
+
+\begin{table}[H]
+\centering
+\caption{Matriz de evidencias y alcance de comprobación del Digital Twin.}
+\label{tab:validacion_gemelo}
+\begin{tabular}{p{3.1cm} p{6.1cm} p{3.8cm}}
+\toprule
+\textbf{Subsistema} & \textbf{Evidencia y comprobación} & \textbf{Alcance sustentado} \\
+\midrule
+\textbf{Electromagnético} &
+Tres comprobaciones de consistencia numérica: potencia nominal, par de bloqueo y constante de tiempo eléctrica. Las diferencias calculadas son inferiores al $0.35\%$ respecto a sus referencias documentales. &
+Consistencia numérica comprobada para las tres relaciones evaluadas. \\
+
+\textbf{Dinámica mecánica} &
+La planta base implementa la relación dinámica $J\dot{\omega}_m=T_e-T_{\mathrm{load}}$. &
+Relación dinámica implementada en la planta computacional. \\
+
+\textbf{Térmico} &
+Se contempla una representación de primer orden con $T_{th}=11$ min. La interpretación de sus resultados requiere distinguir la incorporación de la representación de su validación para condiciones de operación concretas. &
+Representación térmica considerada; alcance de validación dependiente de las condiciones y evidencias disponibles. \\
+
+\textbf{Debilitamiento de campo} &
+Se reconstruye una envolvente de operación a partir de los supuestos declarados. La posición estimada de la rodilla depende, entre otros factores, de la hipótesis $L_d=L_q$. &
+Estimación basada en el modelo y sus supuestos; la incertidumbre depende de las magnitudes adoptadas. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Conclusión del capítulo}
+
+La construcción del Digital Twin computacional del PMSM Siemens 1FT7087 integra la documentación técnica del fabricante, la derivación trazable de parámetros, las relaciones matemáticas del modelo y las representaciones adoptadas para describir su operación. Esta estructura proporciona una base computacional organizada para analizar las dinámicas eléctricas y mecánicas del accionamiento y estudiar las estrategias de control desarrolladas sobre el modelo.
+
+La consistencia de la parametrización se examinó mediante tres comprobaciones cuantitativas: potencia mecánica nominal, par de bloqueo y constante de tiempo eléctrica. Las diferencias calculadas fueron inferiores al $0.35\%$ respecto de sus referencias documentales, lo que respalda la concordancia de las relaciones evaluadas. Asimismo, las envolventes de operación y las respuestas dinámicas simuladas aportan evidencia complementaria sobre el comportamiento representado bajo las condiciones consideradas.
+
+La interpretación de los resultados se apoya en la distinción entre parámetros documentados, magnitudes derivadas y supuestos de modelado. Este criterio permite identificar el alcance de cada comprobación y valorar de manera diferenciada las representaciones electromagnética, mecánica, térmica y de debilitamiento de campo. En particular, las estimaciones dependientes de supuestos y las condiciones de operación aún no evaluadas deben interpretarse conforme a la evidencia disponible para cada caso.
+
+En conjunto, el Digital Twin constituye la plataforma computacional para estudiar el accionamiento y evaluar el control FOC+PI y el supervisor difuso experto bajo los escenarios documentados. Esta misma plataforma puede utilizarse para desarrollar y evaluar posteriormente un supervisor ANFIS entrenado, siempre que su integración, sus datos y su procedimiento de validación queden documentados. La trazabilidad del modelo permite distinguir la evidencia ya obtenida de los resultados que todavía deben generarse.
