@@ -1,0 +1,34 @@
+\chapter{Conclusiones}
+\label{cap:conclusiones}
+
+El presente trabajo desarrolló un Digital Twin computacional trazable de un accionamiento PMSM y evaluó una arquitectura híbrida FOC + Sugeno que incorpora un compensador de fricción no lineal. Las conclusiones siguientes se limitan a la evidencia de simulación documentada.
+
+\begin{enumerate}
+
+\item \textbf{Construcción trazable del Digital Twin.} Se desarrolló un modelo computacional del motor Siemens SIMOTICS S-1FT7087-7WH70-4CH0 mediante ingeniería inversa de la documentación técnica del fabricante (manual A5E45099423B AB, edición 03/2024). Cada parámetro fue clasificado explícitamente según su procedencia: dato directo del fabricante, calculado o supuesto de modelado. Las tres comprobaciones cruzadas de consistencia numérica presentaron discrepancias inferiores al 0.35\%:
+\begin{itemize}
+\item Potencia nominal: error de 0.11\%
+\item Par de bloqueo vía constante de par: error de 0.05\%
+\item Constante eléctrica: error de 0.33\%
+\end{itemize}
+Estas comprobaciones respaldan la consistencia numérica de las relaciones evaluadas y contribuyen a una base computacional trazable para estudiar estrategias de control, sin constituir por sí solas una validación integral frente al motor físico.
+
+\item \textbf{Modelado de fricción no lineal.} El Digital Twin incorpora una representación de fricción no lineal mediante el modelo de Stribeck, con parámetros adoptados como escenario de modelado representativo de servoaccionamientos industriales. La identificación experimental de la fricción del motor físico se declara como trabajo futuro.
+
+\item \textbf{Diseño e implementación del compensador Sugeno.} Se diseñó e implementó un compensador difuso tipo Sugeno con siete reglas, cuyos consecuentes lineales se obtuvieron mediante regresión lineal por mínimos cuadrados sobre el modelo de Stribeck. El compensador reproduce el modelo de fricción con un error medio del 0.22\% y un error máximo del 13.45\%.
+
+\item \textbf{Mejora del seguimiento de velocidad.} La comparación directa entre el FOC+PI solo y el FOC+PI con compensación Sugeno muestra mejoras consistentes en los tres regímenes evaluados:
+\begin{itemize}
+\item Alta velocidad: mejora del 24.6\% en MAE
+\item Baja velocidad: mejora del 34.1\% en MAE
+\item Reversión: mejora del 14.7\% en MAE
+\end{itemize}
+La mayor mejora se observa en baja velocidad, donde la fricción Stribeck es dominante.
+
+\item \textbf{Estabilidad, sensibilidad y robustez.} El análisis de estabilidad del lazo cerrado muestra que todos los polos tienen parte real negativa, con margen de ganancia infinito y margen de fase de $3.27^\circ$. El análisis de sensibilidad muestra que el compensador es robusto ante variaciones de $B$ y $T_c$ ($\pm 50\%$ produce cambios en MAE menores al 30\%), pero sensible a $T_s$ en baja velocidad. El análisis de robustez en 20 escenarios de incertidumbre ($\pm 30\%$ en $B$, $T_c$, $T_s$) muestra que la mejora se mantiene positiva en todos los casos: 25.0\% $\pm$ 2.4\% en alta velocidad, 35.1\% $\pm$ 5.1\% en baja velocidad, y 14.8\% $\pm$ 0.5\% en reversión.
+
+\item \textbf{Separación de responsabilidades como principio de diseño.} La arquitectura implementada mantiene al FOC como estructura de regulación de corriente y velocidad, y utiliza el compensador Sugeno para estimar y compensar la fricción. Esta separación permite integrar la capa inteligente sin modificar el FOC existente, lo que facilita su implementación en sistemas con controladores convencionales ya establecidos.
+
+\end{enumerate}
+
+En síntesis, el trabajo establece una base computacional trazable para estudiar la regulación de velocidad de un PMSM e implementa un compensador Sugeno de fricción que mejora el seguimiento de velocidad en los tres regímenes evaluados. La comparación con el PI solo muestra mejoras consistentes, y el análisis de estabilidad, sensibilidad y robustez respalda la validez de la implementación. La evaluación de un ANFIS entrenado requiere documentar por separado los datos utilizados, el procedimiento de aprendizaje, la validación independiente y sus resultados cuantitativos. La trazabilidad del Digital Twin facilita esa evaluación posterior sin confundir el diseño difuso actual con una implementación neurodifusa entrenada.

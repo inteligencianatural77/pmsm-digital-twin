@@ -1,0 +1,68 @@
+\chapter{Discusión de resultados}
+\label{cap:discusion}
+
+\section{Interpretación del compensador Sugeno}
+\label{sec:cap6_interpretacion}
+
+Los resultados del Capítulo~\ref{cap:resultados} muestran que el compensador Sugeno de fricción mejora el seguimiento de velocidad en los tres regímenes evaluados. La mejora es consistente con el diseño del compensador: la capa difusa estima el par de fricción $\hat{T}_f(\omega_m)$ y lo suma a la referencia de corriente $i_q^*$, liberando al PI de velocidad de tener que compensar la fricción por sí solo.
+
+La mayor mejora se observa en baja velocidad (34.1\%), donde la fricción Stribeck es dominante. La mejora en alta velocidad (24.6\%) refleja la compensación de la fricción viscosa. La mejora en reversión (14.7\%) refleja la compensación en las transiciones. Estos resultados son consistentes con la literatura de compensación de fricción en servoaccionamientos, que reporta mejoras significativas en regímenes de baja velocidad y transiciones.
+
+El compensador no reemplaza al FOC ni genera directamente las tensiones trifásicas del accionamiento. Su función es proporcionar una estimación del par de fricción que se suma a la referencia de corriente. Esta separación de responsabilidades define la arquitectura implementada y facilita su integración con el FOC existente.
+
+\section{Contribución metodológica: trazabilidad del modelo}
+\label{sec:cap6_trazabilidad}
+
+Una contribución metodológica del trabajo es documentar la procedencia de los parámetros empleados en el modelo computacional. Cada parámetro se clasifica como dato directo del fabricante [SIEMENS-DIRECTO], valor calculado [CALCULADO-DESDE-SIEMENS] o supuesto de modelado [SUPUESTO-MODELO]. Esta clasificación permite distinguir los datos de referencia de los valores derivados y de las hipótesis adoptadas durante el modelado.
+
+Las tres comprobaciones cruzadas (potencia nominal con error de 0.11\%, par de bloqueo con error de 0.05\% y constante de tiempo eléctrica con error de 0.33\%) muestran concordancia numérica entre las relaciones evaluadas y sus referencias documentales. Su alcance se limita a esas comprobaciones y no constituye una validación global del modelo electromagnético.
+
+Los parámetros de fricción ($B$, $T_c$, $T_s$, $\omega_s$, $\delta$) se adoptan como escenario de modelado representativo de servoaccionamientos industriales. Su identificación experimental se declara como trabajo futuro. Esta distinción es importante: el compensador se evalúa contra un escenario de fricción, no contra una identificación experimental del motor físico.
+
+\section{Comparación con el estado del arte}
+\label{sec:cap6_estado_arte}
+
+La literatura aborda la compensación de fricción en servoaccionamientos mediante técnicas difusas \cite{shieh2000adaptive} y neurodifusas \cite{jang1993anfis}. Estos antecedentes ofrecen fundamentos metodológicos para estudiar estrategias híbridas, pero no bastan por sí solos para demostrar que una arquitectura específica sea superior. Esa conclusión requiere comparar su desempeño con una referencia bajo condiciones y métricas comunes.
+
+En este trabajo se mantiene el FOC como núcleo de regulación y se incorpora un compensador Sugeno de fricción. La comparación con el PI solo muestra mejoras consistentes en los tres regímenes. Estos resultados son comparables con los reportados en la literatura para compensadores de fricción en servoaccionamientos.
+
+La diferencia con trabajos previos es la integración de un compensador Sugeno sobre un Digital Twin trazable del motor Siemens 1FT7087. Esta integración permite evaluar el compensador sin acceso al motor físico, lo que constituye una contribución metodológica.
+
+\section{Limitaciones del estudio}
+\label{sec:cap6_limitaciones}
+
+Es fundamental reconocer las limitaciones del enfoque actual:
+
+\begin{itemize}
+\item \textbf{Entorno computacional:} La validación se realizó sobre un Digital Twin computacional. Si bien este fue parametrizado con la documentación del fabricante, la presencia de ruido de medición, retardos de comunicación o no linealidades no modeladas (como la saturación magnética profunda) en un banco de pruebas físico podría alterar los márgenes de mejora.
+
+\item \textbf{Parámetros de fricción:} Los parámetros $B$, $T_c$, $T_s$, $\omega_s$ y $\delta$ se adoptan como escenario de modelado, no como identificación experimental. La identificación experimental de la fricción del motor físico se declara como trabajo futuro.
+
+\item \textbf{Margen de fase bajo:} El análisis de estabilidad muestra un margen de fase de $3.27^\circ$, lo que indica sensibilidad a retrasos. La mejora de este margen mediante un ajuste de las ganancias del PI se declara como trabajo futuro.
+
+\item \textbf{Extensión a ANFIS:} La implementación evaluada utiliza reglas expertas y funciones de pertenencia definidas explícitamente. No se documenta un entrenamiento ANFIS mediante el algoritmo híbrido de mínimos cuadrados y retropropagación. El entrenamiento con datos experimentales queda como trabajo futuro.
+
+\item \textbf{Incertidumbre en $L_d$ y $L_q$:} El fabricante solo publica la inductancia de campo giratorio ($L_D = 1.2$ mH). La hipótesis $L_d = L_q$ es razonable para un motor de imanes superficiales, pero introduce incertidumbre en la predicción de la rodilla de debilitamiento de campo.
+\end{itemize}
+
+\section{Trabajo futuro}
+\label{sec:cap6_trabajo_futuro}
+
+Las líneas de investigación que se desprenden de este trabajo incluyen:
+
+\begin{enumerate}
+\item \textbf{Entrenamiento automático del ANFIS:} Utilizar los datos de simulación del compensador Sugeno como conjunto de entrenamiento para ajustar los parámetros de premisa y consecuente mediante el algoritmo híbrido de ANFIS, comparando el desempeño resultante con las reglas expertas propuestas.
+
+\item \textbf{Identificación experimental de fricción:} Realizar ensayos de identificación de fricción en el motor Siemens 1FT7087 (barridos de velocidad, ensayos de par bloqueado) para obtener los parámetros $B$, $T_c$, $T_s$, $\omega_s$ y $\delta$ del motor físico.
+
+\item \textbf{Implementación en DSP:} Evaluar el costo computacional real de la inferencia Sugeno en un procesador de señal digital, verificando que el tiempo de ejecución sea compatible con el paso de muestreo del lazo de velocidad.
+
+\item \textbf{Aprendizaje en línea:} Incorporar un mecanismo de adaptación continua que permita al ANFIS ajustar sus parámetros durante la operación, compensando la deriva térmica del flujo magnético.
+
+\item \textbf{Validación experimental:} Implementar la estrategia en un banco de pruebas físico con el motor Siemens 1FT7087, comparando las métricas de MAE y demanda de corriente con las obtenidas en el Digital Twin.
+
+\item \textbf{Medición de $L_d$ y $L_q$:} Realizar ensayos de identificación de inductancias (caída de tensión con corriente bloqueada en dos posiciones del rotor) para eliminar la incertidumbre asociada al supuesto $L_d = L_q$.
+\end{enumerate}
+
+\paragraph{Contexto en el estado del arte}
+La literatura sobre accionamientos eléctricos y control de máquinas proporciona el contexto para estudiar el desempeño de los reguladores convencionales ante distintas condiciones de operación \cite{holtz2002sensorless, krishnan2017permanent}. En este trabajo, la arquitectura híbrida FOC + Sugeno se plantea como una alternativa que debe evaluarse frente al PI de referencia mediante comparaciones cuantitativas y reproducibles; su necesidad y sus posibles ventajas no se consideran demostradas únicamente por los antecedentes bibliográficos.
